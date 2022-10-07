@@ -1,0 +1,32 @@
+[package]
+name = "realworld_backend"
+version = "0.1.0"
+edition = "2021"
+authors = ["Caio Oliveira <caio.vsoliveira23@gmail.com>"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0.143", features = ["derive"] }
+serde_json = "1.0.83"
+tokio = { version = "1.20.1", features = ["macros", "rt-multi-thread", "net"] }
+
+tokio-postgres = { version = "0.7.7", features = ["array-impls", "with-uuid-1", "with-chrono-0_4"]}
+tokio-postgres-rustls = "0.9.0"
+deadpool-postgres = "0.10.2"
+postgres-types = { version = "0.2.4", features = ["derive"] }
+sea-query = { version = "0.26.3", default-features = false, features = ["derive", "sea-query-derive", "backend-postgres", "postgres", "postgres-array", "with-uuid", "with-chrono"] }
+
+rustls = "0.20.6"
+webpki-roots = "0.22.4"
+
+regex = "1.6.0"
+chrono = { version = "0.4.22", features = ["serde", "clock"] }
+uuid = { version = "1.1.2", features = ["v4", "serde"] }
+
+log = "0.4.17"
+env_logger = "0.9.0"
+async-trait = "0.1.57"
+derive_more = "0.99.17"
+lazy_static = "1.4.0"
+anyhow = "1.0.65"
