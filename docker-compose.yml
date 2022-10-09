@@ -8,9 +8,10 @@ services:
       POSTGRES_USER: ${DATABASE_USER}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRES_DB: ${DATABASE_NAME}
-      PGDATA: /var/lib/postgresql/data
+      PGDATA: "/var/lib/postgresql/${APP_ENV:-development}"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_dev:/var/lib/postgresql/development
+      - postgres_test:/var/lib/postgresql/test
     ports:
       - ${DATABASE_PORT}:5432
 
@@ -35,4 +36,5 @@ services:
       - ${PORT}:${PORT}
 
 volumes:
-  postgres_data: null
+  postgres_dev: null
+  postgres_test: null
