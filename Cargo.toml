@@ -6,6 +6,10 @@ authors = ["Caio Oliveira <caio.vsoliveira23@gmail.com>"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bin]]
+name = "conduit_api"
+path = "src/main.rs"
+
 [features]
 default = [
 	"connect_db_on_start"

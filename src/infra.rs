@@ -14,23 +14,17 @@ pub mod database {
     use tokio_postgres::NoTls;
     use tokio_postgres_rustls::MakeRustlsConnect;
 
-    macro_rules! get_env {
-        ($env:literal) => {
-            std::env::var($env).expect(concat!("Missing env var ", $env))
-        };
-    }
+    use crate::config;
 
     fn pool_config() -> Config {
-        let port: u16 = get_env!("DATABASE_PORT")
-            .parse()
-            .expect("Invalid DATABASE_PORT");
+        let config = config::env_var::get().clone();
 
         let mut cfg = Config::new();
-        cfg.host = Some(get_env!("DATABASE_HOST"));
-        cfg.dbname = Some(get_env!("DATABASE_NAME"));
-        cfg.port = Some(port);
-        cfg.user = Some(get_env!("DATABASE_USER"));
-        cfg.password = Some(get_env!("DATABASE_PASSWORD"));
+        cfg.host = Some(config.database_host);
+        cfg.dbname = Some(config.database_name);
+        cfg.port = Some(config.database_port);
+        cfg.user = Some(config.database_user);
+        cfg.password = Some(config.database_password);
         cfg.manager = Some(ManagerConfig {
             recycling_method: RecyclingMethod::Fast,
         });

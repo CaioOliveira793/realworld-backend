@@ -1,0 +1,38 @@
+version: '3.7'
+
+services:
+  postgres_db:
+    container_name: postgres_db
+    image: docker.io/library/postgres:14-bullseye
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - ${DATABASE_PORT}:5432
+
+  conduit_api:
+    container_name: conduit_api
+    image: conduit_api_dev
+    build:
+      context: .
+      target: development
+      dockerfile: ./dev.dockerfile
+    depends_on:
+      - postgres_db
+    environment:
+      PORT: ${PORT}
+      TOKEN_KEY: ${TOKEN_KEY}
+      DATABASE_HOST: postgres_db
+      DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+    ports:
+      - ${PORT}:${PORT}
+
+volumes:
+  postgres_data: null
