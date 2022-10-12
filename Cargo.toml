@@ -11,15 +11,14 @@ name = "conduit_api"
 path = "src/main.rs"
 
 [features]
-default = [
-	"connect_db_on_start"
-]
+default = []
 connect_db_on_start = []
 
 [dependencies]
-salvo = { version = "0.37.0" }
-tokio = { version = "1.20.1", features = ["macros", "rt-multi-thread", "net"] }
+salvo = { version = "0.37.0", features = ["logging"] }
+tokio = { version = "1.20.1", features = ["macros", "rt-multi-thread", "signal", "net", "time"] }
 serde = { version = "1.0.143", features = ["derive"] }
+serde_json = { version = "1.0.86" }
 
 tokio-postgres = { version = "0.7.7", features = ["array-impls", "with-chrono-0_4"] }
 tokio-postgres-rustls = "0.9.0"
@@ -27,13 +26,21 @@ deadpool-postgres = "0.10.2"
 postgres-types = { version = "0.2.4", features = ["derive"] }
 sea-query = { version = "0.26.3", default-features = false, features = ["derive", "sea-query-derive", "backend-postgres", "postgres", "postgres-array", "with-chrono"] }
 
+reqwest = { version = "0.11.12", default-features = false, features = ["rustls-tls", "json", "brotli", "gzip"] }
+
 rustls = "0.20.6"
 webpki-roots = "0.22.4"
 
+url = { version = "2.3.1" }
 chrono = { version = "0.4.22", features = ["serde", "clock"] }
 
-log = "0.4.17"
-env_logger = "0.9.0"
+tracing = { version = "0.1.37", features = ["log"] }
+tracing-subscriber = "0.3.16"
 async-trait = "0.1.57"
 derive_more = "0.99.17"
 lazy_static = "1.4.0"
+pretty_assertions = "1.3.0"
+
+[dev-dependencies]
+dotenv = { version = "0.15.0" }
+serial_test = { version = "0.9.0" }

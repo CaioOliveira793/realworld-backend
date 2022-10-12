@@ -2,13 +2,16 @@ ARG RUST_VERSION=1.64
 
 FROM docker.io/library/rust:${RUST_VERSION}-slim-bullseye as development
 
-WORKDIR /usr/src/conduit_api
+RUN useradd conduit --create-home --home /home/conduit --user-group
+USER conduit:conduit
 
-COPY Cargo.toml Cargo.lock .
+WORKDIR /home/conduit/api
+
+COPY --chown=conduit:conduit Cargo.toml Cargo.lock .
 
 RUN cargo fetch --locked
 
-COPY . .
+COPY --chown=conduit:conduit . .
 
 RUN cargo build --profile dev
 
