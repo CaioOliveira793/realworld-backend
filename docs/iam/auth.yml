@@ -1,0 +1,24 @@
+post:
+  tags:
+    - Authentication
+  summary: Authenticate user into the api
+  description: Authenticate an existing user
+  operationId: IamAuth
+  requestBody:
+    description: User credentials
+    content:
+      application/json:
+        schema:
+          $ref: 'resource.yml#/UserCredential'
+    required: true
+  responses:
+    '200':
+      description: User authenticated
+      content:
+        application/json:
+          schema:
+            $ref: 'resource.yml#/UserAuthentication'
+    '400':
+      $ref: '../component/response.yml#/malformated_schema'
+    '422':
+      $ref: '../component/response.yml#/invalid_content'

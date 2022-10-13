@@ -1,0 +1,23 @@
+get:
+  tags:
+    - User
+  summary: List users
+  operationId: IamUserList
+  parameters:
+  - name: bio
+    in: query
+    description: bio search term
+    schema:
+      type: string
+  responses:
+    '200':
+      description: User list
+      content:
+        application/json:
+          schema:
+            allOf:
+            - $ref: '../component/schema.yml#/OffsetPagination'
+            - properties:
+                data:
+                  items:
+                    $ref: 'resource.yml#/User'

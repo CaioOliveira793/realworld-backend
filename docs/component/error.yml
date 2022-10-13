@@ -1,0 +1,95 @@
+ErrorResponse:
+  type: object
+  properties:
+    title:
+      type: string
+    message:
+      type: string
+    error:
+      type: object
+  required:
+  - title
+  - message
+  - error
+
+ConflictError:
+  properties:
+    resource_id:
+      type: string
+    resource_type:
+      type: string
+    stable:
+      type: object
+    conflict:
+      type: object
+  required:
+  - resource_id
+  - resource_type
+  - stable
+  - conflict
+
+ValidationError:
+  properties:
+    resource_type:
+      type: string
+    resource_value:
+      type: object
+    fields:
+      type: array
+      items:
+        $ref: '#/ValidationFieldError'
+  required:
+  - resource_type
+  - resource_value
+  - fields
+ValidationFieldError:
+  properties:
+    paths:
+      type: string
+    type_id:
+      type: string
+    value:
+      $ref: 'schema.yml#/AnyType'
+    kinds:
+      type: array
+      items:
+        type: string
+        enum:
+        - AdditionalProperties
+        - MinProperties
+        - MaxProperties
+        - PropertyName
+        - Required
+
+        - MaxLength
+        - MinLength
+        - Pattern
+
+        - MaxItems
+        - MinItems
+
+        - Minimum
+        - Maximum
+        - MultipleOf
+
+        - UnknownVariant
+        - Unverified
+        - Duplicated
+        - AlreadyExists
+        - NotFound
+        - Invalid
+  required:
+  - path
+  - value
+  - type_id
+  - kinds
+
+MalformatedContent:
+  type: object
+  properties:
+    type:
+      type: string
+      enum:
+      - malformated_content
+  required:
+  - type

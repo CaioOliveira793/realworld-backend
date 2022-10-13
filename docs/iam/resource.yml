@@ -1,0 +1,88 @@
+UserCredential:
+  type: object
+  properties:
+    email:
+      type: string
+      format: email
+    password:
+      type: string
+      format: password
+  required:
+  - email
+  - password
+
+UserAuthentication:
+  type: object
+  properties:
+    user:
+      $ref: '#/User'
+    token:
+      type: string
+  required:
+  - user
+  - token
+
+PostUser:
+  type: object
+  properties:
+    username:
+      type: string
+    email:
+      type: string
+      format: email
+    password:
+      type: string
+      format: password
+    bio:
+      type: string
+    image_url:
+      type: string
+  required:
+  - email
+  - password
+  - username
+  - bio
+  - image_url
+
+PutUser:
+  type: object
+  properties:
+    bio:
+      type: string
+    image_url:
+      type: string
+  required:
+  - bio
+  - image_url
+
+User:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    username:
+      type: string
+    email:
+      type: string
+      format: email
+    bio:
+      type: string
+    image_url:
+      type: string
+      format: uri
+    created:
+      type: string
+      format: date-time
+    updated:
+      type: string
+      format: date-time
+      nullable: true
+  required:
+  - id
+  - email
+  - username
+  - bio
+  - image_url
+  - created
+  - updated

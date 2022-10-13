@@ -1,0 +1,23 @@
+malformated_schema:
+  description: Malformated schema
+  content:
+    application/json:
+      schema:
+        allOf:
+        - $ref: '../component/error.yml#/ErrorResponse'
+        - type: object
+          properties:
+            error:
+              $ref: '../component/error.yml#/MalformatedContent'
+
+invalid_content:
+  description: Invalid resource
+  content:
+    application/json:
+      schema:
+        allOf:
+        - $ref: '../component/error.yml#/ErrorResponse'
+        - type: object
+          properties:
+            error:
+              $ref: '../component/error.yml#/ValidationError'

@@ -1,0 +1,22 @@
+openapi: 3.0.3
+info:
+  title: Conduit API
+  description: Conduit API
+  contact:
+    name: RealWorld
+    url: https://realworld.io
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+  version: 1.0.0
+servers:
+  - url: /api
+paths:
+  /iam/auth:
+    $ref: 'iam/auth.yml#'
+  /iam/user/me:
+    $ref: 'iam/user.me.yml#'
+  # /iam/user/{id}:
+  #   $ref: 'iam/user.id.yml#'
+  # /iam/user:
+  #   $ref: 'iam/user.yml#'
