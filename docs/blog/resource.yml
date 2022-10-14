@@ -167,6 +167,42 @@ PutArticleComment:
   - article_id
   - message
 
+ArticleCommentVote:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    article_id:
+      type: string
+      format: uuid
+    profile_id:
+      type: string
+      format: uuid
+    comment_id:
+      type: string
+      format: uuid
+    reaction:
+      type: string
+      enum:
+      - positive
+      - negative
+
+PutArticleCommentVote:
+  type: object
+  properties:
+    comment_id:
+      type: string
+      format: uuid
+    reaction:
+      $ref: '#/Reaction'
+
+Reaction:
+  type: string
+  enum:
+  - positive
+  - negative
+
 PutTags:
   type: array
   items:

@@ -1,0 +1,75 @@
+vote:
+  get:
+    tags:
+    - Comment Vote
+    summary: List comment votes
+    operationId: BlogArticleCommentVoteList
+    parameters:
+    - name: article_id
+      in: query
+      description: Article of the comment
+      schema:
+        type: string
+        format: uuid
+    - name: comment_id
+      in: query
+      description: Comment id
+      schema:
+        type: string
+        format: uuid
+    - name: profile_id
+      in: query
+      description: Profile that voted in the comment
+      schema:
+        type: string
+        format: uuid
+    - name: reaction
+      in: query
+      description: Reaction of the comment
+      schema:
+        $ref: 'resource.yml#/Reaction'
+    responses:
+      '200':
+        $ref: 'response.yml#/article_comment_vote_list'
+
+vote_id:
+  get:
+    tags:
+    - Comment Vote
+    summary: Read comment vote
+    operationId: BlogArticleCommentVoteGet
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    responses:
+      '200':
+        $ref: 'response.yml#/article_comment_vote_resource'
+  put:
+    tags:
+    - Comment Vote
+    summary: Vote in an article comment
+    operationId: BlogArticleCommentVotePut
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: 'resource.yml#/PutArticleCommentVote'
+      required: true
+    responses:
+      '200':
+        $ref: 'response.yml#/article_comment_vote_resource'
+      '400':
+        $ref: '../component/response.yml#/malformated_schema'
+      '422':
+        $ref: '../component/response.yml#/invalid_content'
+  delete:
+    tags:
+    - Comment Vote
+    summary: Remove a vote on an article comment
+    operationId: BlogArticleCommentVoteDelete
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    responses:
+      '204':
+        $ref: '../component/response.yml#/empty_response'

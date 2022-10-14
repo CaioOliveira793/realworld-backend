@@ -87,3 +87,21 @@ article_comment_list:
             data:
               items:
                 $ref: 'resource.yml#/ArticleComment'
+
+article_comment_vote_resource:
+  description: Article comment vote resource
+  content:
+    application/json:
+      schema:
+        $ref: 'resource.yml#/ArticleCommentVote'
+article_comment_vote_list:
+  description: Article comment vote list
+  content:
+    application/json:
+      schema:
+        allOf:
+        - $ref: '../component/schema.yml#/OffsetPagination'
+        - properties:
+            data:
+              items:
+                $ref: 'resource.yml#/ArticleCommentVote'

@@ -46,3 +46,7 @@ paths:
     $ref: 'blog/comment.operation.yml#/comment'
   /article/comment/{id}:
     $ref: 'blog/comment.operation.yml#/comment_id'
+  /article/comment/vote:
+    $ref: 'blog/vote.operation.yml#/vote'
+  /article/comment/vote/{id}:
+    $ref: 'blog/vote.operation.yml#/vote_id'
