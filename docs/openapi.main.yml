@@ -21,20 +21,20 @@ paths:
   # /iam/user:
   #   $ref: 'iam/user.yml#'
   /profile:
-    $ref: 'blog/profile.yml#'
+    $ref: 'blog/profile.operation.yml#/profile'
   /profile/{id}:
-    $ref: 'blog/profile.id.yml#'
+    $ref: 'blog/profile.operation.yml#/profile_id'
   /profile/follow:
-    $ref: 'blog/profile.follow.yml#'
+    $ref: 'blog/profile.operation.yml#/profile_follow'
   /profile/follow/{id}:
-    $ref: 'blog/profile.follow.id.yml#'
+    $ref: 'blog/profile.operation.yml#/profile_follow_id'
   /article:
-    $ref: 'blog/article.yml#'
+    $ref: 'blog/article.operation.yml#/article'
   /article/{id}:
-    $ref: 'blog/article.id.yml#'
+    $ref: 'blog/article.operation.yml#/article_id'
   /article/{id}/tags:
-    $ref: 'blog/article.id.tags.yml#'
+    $ref: 'blog/article.operation.yml#/article_id_tags'
   /article/{id}/version:
-    $ref: 'blog/article.id.version.yml#'
+    $ref: 'blog/article.operation.yml#/article_id_version'
   /article/{id}/version/{version_id}:
-    $ref: 'blog/article.id.version.id.yml#'
+    $ref: 'blog/article.operation.yml#/article_id_version_id'

@@ -1,0 +1,155 @@
+article:
+  get:
+    tags:
+      - Article
+    summary: List articles
+    operationId: BlogArticleList
+    parameters:
+    - name: feed
+      in: query
+      description: Filter articles of followed profiles
+      schema:
+        type: boolean
+    - name: author_id
+      in: query
+      description: Filter articles of an author
+      schema:
+        type: string
+        format: uuid
+    - name: favorite
+      in: query
+      description: Filter favorited articles
+      schema:
+        type: boolean
+    - name: tag
+      in: query
+      description: Filter articles by tags
+      schema:
+        type: array
+        items:
+          type: string
+    responses:
+      '200':
+        $ref: 'response.yml#/article_list'
+
+article_id:
+  get:
+    tags:
+    - Article
+    summary: Read article
+    operationId: BlogArticleGet
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    responses:
+      '200':
+        $ref: 'response.yml#/article_resource'
+  put:
+    tags:
+    - Article
+    summary: Publish an article
+    operationId: BlogArticlePut
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: 'resource.yml#/PutArticle'
+      required: true
+    responses:
+      '200':
+        $ref: 'response.yml#/article_resource'
+      '400':
+        $ref: '../component/response.yml#/malformated_schema'
+      '422':
+        $ref: '../component/response.yml#/invalid_content'
+  delete:
+    tags:
+    - Article
+    summary: Delete an article
+    operationId: BlogArticleDelete
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    responses:
+      '204':
+        $ref: '../component/response.yml#/empty_response'
+
+article_id_tags:
+  patch:
+    tags:
+    - Article
+    summary: Update article tags
+    operationId: BlogArticleTagsPut
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: 'resource.yml#/PutTags'
+      required: true
+    responses:
+      '200':
+        $ref: 'response.yml#/article_resource'
+      '400':
+        $ref: '../component/response.yml#/malformated_schema'
+      '422':
+        $ref: '../component/response.yml#/invalid_content'
+
+article_id_version:
+  get:
+    tags:
+      - Article
+    summary: List article versions
+    operationId: BlogArticleVersionList
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    responses:
+      '200':
+        $ref: 'response.yml#/article_list'
+
+article_id_version_id:
+  get:
+    tags:
+      - Article
+    summary: Read article version
+    operationId: BlogArticleVersionGet
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    - name: version_id
+      in: path
+      description: version id of the article
+      required: true
+      schema:
+        type: string
+        format: uuid
+    responses:
+      '200':
+        $ref: 'response.yml#/article_resource'
+  put:
+    tags:
+      - Article
+    summary: Publish a new version of an article
+    operationId: BlogArticleVersionPut
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    - name: version_id
+      in: path
+      description: version id of the article
+      required: true
+      schema:
+        type: string
+        format: uuid
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: 'resource.yml#/PutArticle'
+      required: true
+    responses:
+      '200':
+        $ref: 'response.yml#/article_resource'
+      '400':
+        $ref: '../component/response.yml#/malformated_schema'
+      '422':
+        $ref: '../component/response.yml#/invalid_content'

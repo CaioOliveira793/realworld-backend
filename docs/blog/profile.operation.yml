@@ -1,0 +1,94 @@
+profile:
+  get:
+    tags:
+      - Profile
+    summary: List profiles
+    operationId: BlogProfileList
+    parameters:
+    - name: bio
+      in: query
+      description: biography search term
+      schema:
+        type: string
+    responses:
+      '200':
+        $ref: 'response.yml#/profile_list'
+
+profile_id:
+  get:
+    tags:
+      - Profile
+    summary: Read user profile
+    operationId: BlogProfileGet
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    responses:
+      '200':
+        $ref: 'response.yml#/profile_resource'
+
+profile_follow:
+  get:
+    tags:
+      - Follow
+    summary: List profile follow relations
+    operationId: BlogProfileFollowList
+    parameters:
+    - name: follower_id
+      in: query
+      description: profile id of a follower
+      schema:
+        type: string
+        format: uuid
+    - name: following_id
+      in: query
+      description: profile id followed
+      schema:
+        type: string
+        format: uuid
+    responses:
+      '200':
+        $ref: 'response.yml#/follow_list'
+
+profile_follow_id:
+  get:
+    tags:
+    - Follow
+    summary: Read profile follow relation
+    operationId: BlogProfileFollowGet
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    responses:
+      '200':
+        $ref: 'response.yml#/follow_resource'
+
+  put:
+    tags:
+    - Follow
+    summary: Follow a profile
+    operationId: BlogProfileFollowPut
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: 'resource.yml#/PutFollow'
+      required: true
+    responses:
+      '200':
+        $ref: 'response.yml#/follow_resource'
+      '400':
+        $ref: '../component/response.yml#/malformated_schema'
+      '422':
+        $ref: '../component/response.yml#/invalid_content'
+
+  delete:
+    tags:
+    - Follow
+    summary: Unfollow a profile
+    operationId: BlogProfileFollowDelete
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    responses:
+      '204':
+        $ref: '../component/response.yml#/empty_response'
