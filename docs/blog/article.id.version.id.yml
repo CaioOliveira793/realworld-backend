@@ -1,0 +1,45 @@
+get:
+  tags:
+    - Article
+  summary: Read article version
+  operationId: BlogArticleVersionGet
+  parameters:
+  - $ref: '../component/parameter.yml#/id'
+  - name: version_id
+    in: path
+    description: version id of the article
+    required: true
+    schema:
+      type: string
+      format: uuid
+  responses:
+    '200':
+      $ref: 'response.yml#/article_resource'
+
+put:
+  tags:
+    - Article
+  summary: Publish a new version of an article
+  operationId: BlogArticleVersionPut
+  parameters:
+  - $ref: '../component/parameter.yml#/id'
+  - name: version_id
+    in: path
+    description: version id of the article
+    required: true
+    schema:
+      type: string
+      format: uuid
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: 'resource.yml#/PutArticle'
+    required: true
+  responses:
+    '200':
+      $ref: 'response.yml#/article_resource'
+    '400':
+      $ref: '../component/response.yml#/malformated_schema'
+    '422':
+      $ref: '../component/response.yml#/invalid_content'

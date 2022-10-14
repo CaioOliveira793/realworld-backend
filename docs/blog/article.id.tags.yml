@@ -1,0 +1,20 @@
+patch:
+  tags:
+  - Article
+  summary: Update article tags
+  operationId: BlogArticleTagsPut
+  parameters:
+  - $ref: '../component/parameter.yml#/id'
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: 'resource.yml#/PutTags'
+    required: true
+  responses:
+    '200':
+      $ref: 'response.yml#/article_resource'
+    '400':
+      $ref: '../component/response.yml#/malformated_schema'
+    '422':
+      $ref: '../component/response.yml#/invalid_content'

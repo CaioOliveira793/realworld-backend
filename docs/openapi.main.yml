@@ -28,3 +28,13 @@ paths:
     $ref: 'blog/profile.follow.yml#'
   /profile/follow/{id}:
     $ref: 'blog/profile.follow.id.yml#'
+  /article:
+    $ref: 'blog/article.yml#'
+  /article/{id}:
+    $ref: 'blog/article.id.yml#'
+  /article/{id}/tags:
+    $ref: 'blog/article.id.tags.yml#'
+  /article/{id}/version:
+    $ref: 'blog/article.id.version.yml#'
+  /article/{id}/version/{version_id}:
+    $ref: 'blog/article.id.version.id.yml#'

@@ -1,0 +1,32 @@
+get:
+  tags:
+    - Article
+  summary: List articles
+  operationId: BlogArticleList
+  parameters:
+  - name: feed
+    in: query
+    description: Filter articles of followed profiles
+    schema:
+      type: boolean
+  - name: author_id
+    in: query
+    description: Filter articles of an author
+    schema:
+      type: string
+      format: uuid
+  - name: favorite
+    in: query
+    description: Filter favorited articles
+    schema:
+      type: boolean
+  - name: tag
+    in: query
+    description: Filter articles by tags
+    schema:
+      type: array
+      items:
+        type: string
+  responses:
+    '200':
+      $ref: 'response.yml#/article_list'

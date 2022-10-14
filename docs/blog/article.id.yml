@@ -1,30 +1,30 @@
 get:
   tags:
-  - Follow
-  summary: Read profile follow relation
-  operationId: BlogProfileFollowGet
+  - Article
+  summary: Read article
+  operationId: BlogArticleGet
   parameters:
   - $ref: '../component/parameter.yml#/id'
   responses:
     '200':
-      $ref: 'response.yml#/follow_resource'
+      $ref: 'response.yml#/article_resource'
 
 put:
   tags:
-  - Follow
-  summary: Follow a profile
-  operationId: BlogProfileFollowPut
+  - Article
+  summary: Publish an article
+  operationId: BlogArticlePut
   parameters:
   - $ref: '../component/parameter.yml#/id'
   requestBody:
     content:
       application/json:
         schema:
-          $ref: 'resource.yml#/PutFollow'
+          $ref: 'resource.yml#/PutArticle'
     required: true
   responses:
     '200':
-      $ref: 'response.yml#/follow_resource'
+      $ref: 'response.yml#/article_resource'
     '400':
       $ref: '../component/response.yml#/malformated_schema'
     '422':
@@ -32,9 +32,9 @@ put:
 
 delete:
   tags:
-  - Follow
-  summary: Unfollow a profile
-  operationId: BlogProfileFollowDelete
+  - Article
+  summary: Delete an article
+  operationId: BlogArticleDelete
   parameters:
   - $ref: '../component/parameter.yml#/id'
   responses:

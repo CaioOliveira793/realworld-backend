@@ -53,62 +53,6 @@ OffsetPagination:
   - data
 
 # TODO: remove
-Article:
-  required:
-    - author
-    - body
-    - description
-    - favorited
-    - favorite_count
-    - slug
-    - tag_list
-    - title
-    - created
-    - updated
-  type: object
-  properties:
-    slug:
-      type: string
-    title:
-      type: string
-    description:
-      type: string
-    body:
-      type: string
-    tag_list:
-      type: array
-      items:
-        type: string
-    favorited:
-      type: boolean
-    favorite_count:
-      type: integer
-    author:
-      $ref: '#/Profile'
-    created:
-      type: string
-      format: date-time
-    updated:
-      type: string
-      format: date-time
-PutArticle:
-  required:
-    - title
-    - description
-    - body
-    - tag_list
-  type: object
-  properties:
-    title:
-      type: string
-    description:
-      type: string
-    body:
-      type: string
-    tag_list:
-      type: array
-      items:
-        type: string
 Comment:
   required:
     - author
@@ -130,22 +74,7 @@ Comment:
       type: string
     author:
       $ref: '#/Profile'
-SingleCommentResponse:
-  required:
-    - comment
-  type: object
-  properties:
-    comment:
-      $ref: '#/Comment'
-MultipleCommentsResponse:
-  required:
-    - comments
-  type: object
-  properties:
-    comments:
-      type: array
-      items:
-        $ref: '#/Comment'
+
 NewComment:
   required:
     - body
@@ -153,13 +82,7 @@ NewComment:
   properties:
     body:
       type: string
-NewCommentRequest:
-  required:
-    - comment
-  type: object
-  properties:
-    comment:
-      $ref: '#/NewComment'
+
 TagsResponse:
   required:
     - tags
@@ -169,6 +92,7 @@ TagsResponse:
       type: array
       items:
         type: string
+
 Token:
   type: apiKey
   description: "For accessing the protected API resources, you must have received\

@@ -1,3 +1,15 @@
+get:
+  tags:
+    - User
+  summary: Read user
+  description: Read existent user
+  operationId: IamUserGet
+  parameters:
+  - $ref: '../component/parameter.yml#/id'
+  responses:
+    '200':
+      $ref: 'response.yml#/user_resource'
+
 post:
   tags:
     - User
@@ -43,15 +55,3 @@ put:
       $ref: '../component/response.yml#/malformated_schema'
     '422':
       $ref: '../component/response.yml#/invalid_content'
-
-get:
-  tags:
-    - User
-  summary: Read user
-  description: Read existent user
-  operationId: IamUserGet
-  parameters:
-  - $ref: '../component/parameter.yml#/id'
-  responses:
-    '200':
-      $ref: 'response.yml#/user_resource'

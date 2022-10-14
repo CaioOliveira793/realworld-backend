@@ -33,3 +33,21 @@ follow_list:
             data:
               items:
                 $ref: 'resource.yml#/Follow'
+
+article_resource:
+  description: Article resource
+  content:
+    application/json:
+      schema:
+        $ref: 'resource.yml#/Article'
+article_list:
+  description: Article list
+  content:
+    application/json:
+      schema:
+        allOf:
+        - $ref: '../component/schema.yml#/OffsetPagination'
+        - properties:
+            data:
+              items:
+                $ref: 'resource.yml#/Article'

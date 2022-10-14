@@ -44,3 +44,65 @@ PutFollow:
       format: uuid
   required:
   - following_ids
+
+Article:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    slug:
+      type: string
+    title:
+      type: string
+    description:
+      type: string
+    body:
+      type: string
+    tags:
+      type: array
+      items:
+        type: string
+    author_id:
+      type: string
+      format: uuid
+    version:
+      type: integer
+      format: int32
+      minimum: 1
+    created:
+      type: string
+      format: date-time
+    updated:
+      type: string
+      format: date-time
+  required:
+  - id
+  - slug
+  - title
+  - description
+  - body
+  - tags
+  - author_id
+  - version
+  - created
+  - updated
+
+PutArticle:
+  type: object
+  properties:
+    title:
+      type: string
+    description:
+      type: string
+    body:
+      type: string
+  required:
+  - title
+  - description
+  - body
+
+PutTags:
+  type: array
+  items:
+    type: string
