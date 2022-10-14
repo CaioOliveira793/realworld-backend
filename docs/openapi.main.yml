@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Conduit API
-  description: Conduit API
+  description: Conduit Modified API
   contact:
     name: RealWorld
     url: https://realworld.io
@@ -14,12 +14,12 @@ servers:
 paths:
   /iam/auth:
     $ref: 'iam/auth.yml#'
-  /iam/user/me:
-    $ref: 'iam/user.me.yml#'
-  # /iam/user/{id}:
-  #   $ref: 'iam/user.id.yml#'
   # /iam/user:
-  #   $ref: 'iam/user.yml#'
+  #   $ref: 'iam/user.operation.yml#/user'
+  /iam/user/me:
+    $ref: 'iam/user.operation.yml#/user_me'
+  /iam/user/{id}:
+    $ref: 'iam/user.operation.yml#/user_id'
   /profile:
     $ref: 'blog/profile.operation.yml#/profile'
   /profile/{id}:

@@ -1,0 +1,101 @@
+user:
+  get:
+    tags:
+      - User
+    summary: List users
+    operationId: IamUserList
+    parameters:
+    - name: bio
+      in: query
+      description: biography search term
+      schema:
+        type: string
+    responses:
+      '200':
+        $ref: 'response.yml#/user_list'
+
+user_id:
+  # get:
+  #   tags:
+  #     - User
+  #   summary: Read user
+  #   description: Read existent user
+  #   operationId: IamUserGet
+  #   parameters:
+  #   - $ref: '../component/parameter.yml#/id'
+  #   responses:
+  #     '200':
+  #       $ref: 'response.yml#/user_resource'
+  post:
+    tags:
+      - User
+    summary: Create user
+    description: Create a new user
+    operationId: IamUserPost
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    requestBody:
+      description: New user
+      content:
+        application/json:
+          schema:
+            $ref: 'resource.yml#/PostUser'
+      required: true
+    responses:
+      '200':
+        $ref: 'response.yml#/user_resource'
+      '400':
+        $ref: '../component/response.yml#/malformated_schema'
+      '422':
+        $ref: '../component/response.yml#/invalid_content'
+  put:
+    tags:
+      - User
+    summary: Update user
+    description: Update existent user
+    operationId: IamUserPut
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    requestBody:
+      description: New user info
+      content:
+        application/json:
+          schema:
+            $ref: 'resource.yml#/PutUser'
+      required: true
+    responses:
+      '200':
+        $ref: 'response.yml#/user_resource'
+      '400':
+        $ref: '../component/response.yml#/malformated_schema'
+      '422':
+        $ref: '../component/response.yml#/invalid_content'
+
+user_me:
+  put:
+    tags:
+      - User
+    summary: Update authenticated user
+    operationId: IamUserMePut
+    requestBody:
+      description: New user info
+      content:
+        application/json:
+          schema:
+            $ref: 'resource.yml#/PutUser'
+      required: true
+    responses:
+      '200':
+        $ref: 'response.yml#/user_resource'
+      '400':
+        $ref: '../component/response.yml#/malformated_schema'
+      '422':
+        $ref: '../component/response.yml#/invalid_content'
+  get:
+    tags:
+      - User
+    summary: Read authenticated user
+    operationId: IamUserMeGet
+    responses:
+      '200':
+        $ref: 'response.yml#/user_resource'
