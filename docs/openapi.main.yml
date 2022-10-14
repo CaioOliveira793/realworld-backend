@@ -20,3 +20,11 @@ paths:
   #   $ref: 'iam/user.id.yml#'
   # /iam/user:
   #   $ref: 'iam/user.yml#'
+  /profile:
+    $ref: 'blog/profile.yml#'
+  /profile/{id}:
+    $ref: 'blog/profile.id.yml#'
+  /profile/follow:
+    $ref: 'blog/profile.follow.yml#'
+  /profile/follow/{id}:
+    $ref: 'blog/profile.follow.id.yml#'

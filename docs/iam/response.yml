@@ -1,0 +1,17 @@
+user_list:
+  description: User list
+  content:
+    application/json:
+      schema:
+        allOf:
+        - $ref: '../component/schema.yml#/OffsetPagination'
+        - properties:
+            data:
+              items:
+                $ref: 'resource.yml#/User'
+user_resource:
+  description: User resource
+  content:
+    application/json:
+      schema:
+        $ref: 'resource.yml#/User'

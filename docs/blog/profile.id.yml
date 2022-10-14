@@ -1,0 +1,10 @@
+get:
+  tags:
+    - Profile
+  summary: Read user profile
+  operationId: BlogProfileGet
+  parameters:
+  - $ref: '../component/parameter.yml#/id'
+  responses:
+    '200':
+      $ref: 'response.yml#/profile_resource'

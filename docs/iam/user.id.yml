@@ -15,11 +15,7 @@ post:
     required: true
   responses:
     '200':
-      description: User resource
-      content:
-        application/json:
-          schema:
-            $ref: 'resource.yml#/User'
+      $ref: 'response.yml#/user_resource'
     '400':
       $ref: '../component/response.yml#/malformated_schema'
     '422':
@@ -42,11 +38,7 @@ put:
     required: true
   responses:
     '200':
-      description: User resource
-      content:
-        application/json:
-          schema:
-            $ref: 'resource.yml#/User'
+      $ref: 'response.yml#/user_resource'
     '400':
       $ref: '../component/response.yml#/malformated_schema'
     '422':
@@ -62,12 +54,4 @@ get:
   - $ref: '../component/parameter.yml#/id'
   responses:
     '200':
-      description: User resource
-      content:
-        application/json:
-          schema:
-            $ref: 'resource.yml#/User'
-    '400':
-      $ref: '../component/response.yml#/malformated_schema'
-    '422':
-      $ref: '../component/response.yml#/invalid_content'
+      $ref: 'response.yml#/user_resource'

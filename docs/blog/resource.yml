@@ -1,0 +1,46 @@
+Profile:
+  description: Public user profile
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    username:
+      type: string
+    bio:
+      type: string
+    image_url:
+      type: string
+      format: uri
+  required:
+  - id
+  - username
+  - bio
+  - image_url
+
+Follow:
+  description: Following relations of user profiles
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    follower_id:
+      type: string
+      format: uuid
+    following_id:
+      type: string
+      format: uuid
+  required:
+  - id
+  - follower_id
+  - following_id
+
+PutFollow:
+  type: object
+  properties:
+    following_id:
+      type: string
+      format: uuid
+  required:
+  - following_ids

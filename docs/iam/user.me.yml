@@ -12,11 +12,7 @@ put:
     required: true
   responses:
     '200':
-      description: User resource
-      content:
-        application/json:
-          schema:
-            $ref: 'resource.yml#/User'
+      $ref: 'response.yml#/user_resource'
     '400':
       $ref: '../component/response.yml#/malformated_schema'
     '422':
@@ -29,11 +25,7 @@ get:
   operationId: IamUserMeGet
   responses:
     '200':
-      description: User resource
-      content:
-        application/json:
-          schema:
-            $ref: 'resource.yml#/User'
+      $ref: 'response.yml#/user_resource'
     '400':
       $ref: '../component/response.yml#/malformated_schema'
     '422':

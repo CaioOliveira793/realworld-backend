@@ -53,22 +53,6 @@ OffsetPagination:
   - data
 
 # TODO: remove
-Profile:
-  required:
-    - bio
-    - following
-    - image
-    - username
-  type: object
-  properties:
-    username:
-      type: string
-    bio:
-      type: string
-    image:
-      type: string
-    following:
-      type: boolean
 Article:
   required:
     - author

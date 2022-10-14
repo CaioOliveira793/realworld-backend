@@ -2,4 +2,4 @@
 
 set -o errexit
 
-swagger-ui-watcher docs/open_api.yml
+swagger-ui-watcher docs/openapi.main.yml

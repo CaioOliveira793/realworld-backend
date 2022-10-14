@@ -1,8 +1,8 @@
 get:
   tags:
-    - User
-  summary: List users
-  operationId: IamUserList
+    - Profile
+  summary: List profiles
+  operationId: BlogProfileList
   parameters:
   - name: bio
     in: query
@@ -11,4 +11,4 @@ get:
       type: string
   responses:
     '200':
-      $ref: 'response.yml#/user_list'
+      $ref: 'response.yml#/profile_list'

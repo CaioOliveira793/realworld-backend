@@ -21,3 +21,7 @@ invalid_content:
           properties:
             error:
               $ref: '../component/error.yml#/ValidationError'
+
+empty_response:
+  description: Empty response
+  content: {}

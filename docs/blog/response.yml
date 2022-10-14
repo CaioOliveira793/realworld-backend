@@ -1,0 +1,35 @@
+profile_list:
+  description: Profile list
+  content:
+    application/json:
+      schema:
+        allOf:
+        - $ref: '../component/schema.yml#/OffsetPagination'
+        - properties:
+            data:
+              items:
+                $ref: 'resource.yml#/Profile'
+profile_resource:
+  description: Profile resource
+  content:
+    application/json:
+      schema:
+        $ref: 'resource.yml#/Profile'
+
+follow_resource:
+  description: Follow resource
+  content:
+    application/json:
+      schema:
+        $ref: 'resource.yml#/Follow'
+follow_list:
+  description: Follow list
+  content:
+    application/json:
+      schema:
+        allOf:
+        - $ref: '../component/schema.yml#/OffsetPagination'
+        - properties:
+            data:
+              items:
+                $ref: 'resource.yml#/Follow'
