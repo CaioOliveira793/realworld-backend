@@ -42,3 +42,7 @@ paths:
     $ref: 'blog/favorite.operation.yml#/favorite'
   /article/favorite/{id}:
     $ref: 'blog/favorite.operation.yml#/favorite_id'
+  /article/comment:
+    $ref: 'blog/comment.operation.yml#/comment'
+  /article/comment/{id}:
+    $ref: 'blog/comment.operation.yml#/comment_id'

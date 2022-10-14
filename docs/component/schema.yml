@@ -53,36 +53,6 @@ OffsetPagination:
   - data
 
 # TODO: remove
-Comment:
-  required:
-    - author
-    - body
-    - createdAt
-    - id
-    - updatedAt
-  type: object
-  properties:
-    id:
-      type: integer
-    createdAt:
-      type: string
-      format: date-time
-    updatedAt:
-      type: string
-      format: date-time
-    body:
-      type: string
-    author:
-      $ref: '#/Profile'
-
-NewComment:
-  required:
-    - body
-  type: object
-  properties:
-    body:
-      type: string
-
 TagsResponse:
   required:
     - tags

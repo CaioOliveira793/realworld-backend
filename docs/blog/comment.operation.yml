@@ -1,0 +1,68 @@
+comment:
+  get:
+    tags:
+    - Comment
+    summary: List articles comments
+    operationId: BlogArticleCommentList
+    parameters:
+    - name: article_id
+      in: query
+      description: Article id
+      schema:
+        type: string
+        format: uuid
+    - name: msg
+      in: query
+      description: message search term
+      schema:
+        type: string
+    responses:
+      '200':
+        $ref: 'response.yml#/article_comment_list'
+
+comment_id:
+  get:
+    tags:
+    - Comment
+    summary: Read article comment
+    operationId: BlogArticleCommentGet
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    responses:
+      '200':
+        $ref: 'response.yml#/article_comment_resource'
+  put:
+    tags:
+    - Comment
+    summary: Create/update a comment on an article
+    description: |
+      To create a new comment, use a new `uuid` for the id, with the article id and the message in the body.
+      In case of an update, use the same comment id for the same article with a different message.
+    operationId: BlogArticleCommentPut
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: 'resource.yml#/PutArticleComment'
+      required: true
+    responses:
+      '200':
+        $ref: 'response.yml#/article_comment_resource'
+      '400':
+        $ref: '../component/response.yml#/malformated_schema'
+      '422':
+        $ref: '../component/response.yml#/invalid_content'
+  delete:
+    tags:
+    - Comment
+    summary: Delete a comment
+    description: |
+      Hard delete the comment of an article.
+    operationId: BlogArticleCommentDelete
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    responses:
+      '204':
+        $ref: '../component/response.yml#/empty_response'

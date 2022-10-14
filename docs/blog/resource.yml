@@ -131,6 +131,42 @@ PutArticleFavorite:
   required:
   - article_id
 
+ArticleComment:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    article_id:
+      type: string
+      format: uuid
+    profile_id:
+      type: string
+      format: uuid
+    message:
+      type: string
+    edited:
+      type: boolean
+      default: false
+  required:
+  - id
+  - article_id
+  - profile_id
+  - message
+  - edited
+
+PutArticleComment:
+  type: object
+  properties:
+    article_id:
+      type: string
+      format: uuid
+    message:
+      type: string
+  required:
+  - article_id
+  - message
+
 PutTags:
   type: array
   items:
