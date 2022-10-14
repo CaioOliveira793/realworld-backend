@@ -1,0 +1,51 @@
+favorite:
+  get:
+    tags:
+      - Favorite
+    summary: List article favorites
+    operationId: BlogArticleFavoriteList
+    parameters:
+    - name: author_id
+      in: query
+      description: filter by the article author
+      schema:
+        type: string
+        format: uuid
+    - name: tags
+      in: query
+      description: filter by article tags
+      schema:
+        type: array
+        items:
+          type: string
+    responses:
+      '200':
+        $ref: 'response.yml#/article_favorite_list'
+
+favorite_id:
+  put:
+    tags:
+      - Favorite
+    summary: Favorite article
+    operationId: BlogArticleFavoritePut
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: 'resource.yml#/PutArticleFavorite'
+      required: true
+    responses:
+      '200':
+        $ref: 'response.yml#/article_favorite_resource'
+  delete:
+    tags:
+      - Favorite
+    summary: Remove favorite of an article
+    operationId: BlogArticleFavoriteDelete
+    parameters:
+    - $ref: '../component/parameter.yml#/id'
+    responses:
+      '204':
+        $ref: '../component/response.yml#/empty_response'

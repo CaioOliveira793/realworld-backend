@@ -38,3 +38,7 @@ paths:
     $ref: 'blog/article.operation.yml#/article_id_version'
   /article/{id}/version/{version_id}:
     $ref: 'blog/article.operation.yml#/article_id_version_id'
+  /article/favorite:
+    $ref: 'blog/favorite.operation.yml#/favorite'
+  /article/favorite/{id}:
+    $ref: 'blog/favorite.operation.yml#/favorite_id'

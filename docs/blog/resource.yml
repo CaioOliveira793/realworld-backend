@@ -43,7 +43,7 @@ PutFollow:
       type: string
       format: uuid
   required:
-  - following_ids
+  - following_id
 
 Article:
   type: object
@@ -51,6 +51,13 @@ Article:
     id:
       type: string
       format: uuid
+    version_id:
+      type: string
+      format: uuid
+    version:
+      type: integer
+      format: int32
+      minimum: 1
     slug:
       type: string
     title:
@@ -66,10 +73,6 @@ Article:
     author_id:
       type: string
       format: uuid
-    version:
-      type: integer
-      format: int32
-      minimum: 1
     created:
       type: string
       format: date-time
@@ -101,6 +104,32 @@ PutArticle:
   - title
   - description
   - body
+
+ArticleFavorite:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    article_id:
+      type: string
+      format: uuid
+    profile_id:
+      type: string
+      format: uuid
+  required:
+  - id
+  - article_id
+  - profile_id
+
+PutArticleFavorite:
+  type: object
+  properties:
+    article_id:
+      type: string
+      format: uuid
+  required:
+  - article_id
 
 PutTags:
   type: array

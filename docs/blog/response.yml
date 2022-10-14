@@ -51,3 +51,21 @@ article_list:
             data:
               items:
                 $ref: 'resource.yml#/Article'
+
+article_favorite_resource:
+  description: Article favorite resource
+  content:
+    application/json:
+      schema:
+        $ref: 'resource.yml#/ArticleFavorite'
+article_favorite_list:
+  description: Article favorite list
+  content:
+    application/json:
+      schema:
+        allOf:
+        - $ref: '../component/schema.yml#/OffsetPagination'
+        - properties:
+            data:
+              items:
+                $ref: 'resource.yml#/ArticleFavorite'
