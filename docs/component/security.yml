@@ -1,0 +1,17 @@
+UserAuthorization:
+  description: Authorization scheme for user authorization
+  type: http
+  scheme: bearer
+  bearerFormat: JWT
+
+ResetUserPasswordAuthorization:
+  description: Authorization scheme for user password reset
+  type: apiKey
+  name: Reset-Password-Authorization
+  in: header
+
+ChangeUserEmailAuthorization:
+  description: Authorization scheme for user email change confirmation
+  type: apiKey
+  name: Change-Email-Authorization
+  in: header

@@ -11,6 +11,12 @@ info:
   version: 1.0.0
 servers:
   - url: /api
+# TODO: improve error responses
+# - Unauthorized
+# - Forbidden
+# - Conflict
+# - Internal server error
+# - Service unavailable
 paths:
   /iam/auth:
     $ref: 'iam/auth.yml#'
@@ -20,6 +26,16 @@ paths:
     $ref: 'iam/user.operation.yml#/user_me'
   /iam/user/{id}:
     $ref: 'iam/user.operation.yml#/user_id'
+  /iam/user/{id}/change_password:
+    $ref: 'iam/user.operation.yml#/user_id_change_password'
+  /iam/user/{id}/send_email_change:
+    $ref: 'iam/user.operation.yml#/user_id_send_email_change'
+  /iam/user/{id}/change_email:
+    $ref: 'iam/user.operation.yml#/user_id_change_email'
+  /iam/user/send_password_reset:
+    $ref: 'iam/user.operation.yml#/user_send_password_reset'
+  /iam/user/reset_password:
+    $ref: 'iam/user.operation.yml#/user_reset_password'
   /profile:
     $ref: 'blog/profile.operation.yml#/profile'
   /profile/{id}:
@@ -50,3 +66,12 @@ paths:
     $ref: 'blog/vote.operation.yml#/vote'
   /article/comment/vote/{id}:
     $ref: 'blog/vote.operation.yml#/vote_id'
+
+components:
+  securitySchemes:
+    UserAuthorization:
+      $ref: 'component/security.yml#/UserAuthorization'
+    ResetUserPasswordAuthorization:
+      $ref: 'component/security.yml#/ResetUserPasswordAuthorization'
+    ChangeUserEmailAuthorization:
+      $ref: 'component/security.yml#/ChangeUserEmailAuthorization'

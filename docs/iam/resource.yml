@@ -33,16 +33,10 @@ PostUser:
     password:
       type: string
       format: password
-    bio:
-      type: string
-    image_url:
-      type: string
   required:
   - email
   - password
   - username
-  - bio
-  - image_url
 
 PutUser:
   type: object
@@ -54,6 +48,59 @@ PutUser:
   required:
   - bio
   - image_url
+
+PostChangeUserPassword:
+  type: object
+  properties:
+    current_passoword:
+      type: string
+      format: passoword
+    new_passoword:
+      type: string
+      format: passoword
+  required:
+  - new_passoword
+  - current_passoword
+
+PostSendUserPasswordReset:
+  type: object
+  properties:
+    message_address:
+      type: string
+    address_type:
+      type: string
+      enum:
+      - email
+  required:
+  - message_address
+  - address_type
+
+PostResetUserPassword:
+  type: object
+  properties:
+    new_password:
+      type: string
+      format: password
+  required:
+  - new_password
+
+PostSendChangeUserEmail:
+  type: object
+  properties:
+    new_email:
+      type: string
+      format: email
+  required:
+  - new_email
+
+PostChangeUserEmail:
+  type: object
+  properties:
+    password:
+      type: string
+      format: password
+  required:
+  - password
 
 User:
   type: object
@@ -68,9 +115,11 @@ User:
       format: email
     bio:
       type: string
+      nullable: true
     image_url:
       type: string
       format: uri
+      nullable: true
     created:
       type: string
       format: date-time

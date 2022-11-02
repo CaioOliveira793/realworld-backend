@@ -15,17 +15,16 @@ user:
         $ref: 'response.yml#/user_list'
 
 user_id:
-  # get:
-  #   tags:
-  #     - User
-  #   summary: Read user
-  #   description: Read existent user
-  #   operationId: IamUserGet
-  #   parameters:
-  #   - $ref: '../component/parameter.yml#/id'
-  #   responses:
-  #     '200':
-  #       $ref: 'response.yml#/user_resource'
+  get:
+    tags:
+      - User
+    summary: Read user
+    operationId: IamUserGet
+    parameters:
+      - $ref: '../component/parameter.yml#/id'
+    responses:
+      '200':
+        $ref: 'response.yml#/user_resource'
   post:
     tags:
       - User
@@ -33,9 +32,8 @@ user_id:
     description: Create a new user
     operationId: IamUserPost
     parameters:
-    - $ref: '../component/parameter.yml#/id'
+      - $ref: '../component/parameter.yml#/id'
     requestBody:
-      description: New user
       content:
         application/json:
           schema:
@@ -55,9 +53,8 @@ user_id:
     description: Update existent user
     operationId: IamUserPut
     parameters:
-    - $ref: '../component/parameter.yml#/id'
+      - $ref: '../component/parameter.yml#/id'
     requestBody:
-      description: New user info
       content:
         application/json:
           schema:
@@ -78,7 +75,6 @@ user_me:
     summary: Update authenticated user
     operationId: IamUserMePut
     requestBody:
-      description: New user info
       content:
         application/json:
           schema:
@@ -99,3 +95,117 @@ user_me:
     responses:
       '200':
         $ref: 'response.yml#/user_resource'
+
+user_id_change_password:
+  post:
+    tags:
+      - User
+    summary: Update user password
+    operationId: IamUserPasswordPatch
+    parameters:
+      - $ref: '../component/parameter.yml#/id'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: 'resource.yml#/PostChangeUserPassword'
+      required: true
+    security:
+      - UserAuthorization: []
+    responses:
+      '200':
+        $ref: 'response.yml#/user_resource'
+      '400':
+        $ref: '../component/response.yml#/malformated_schema'
+      '422':
+        $ref: '../component/response.yml#/invalid_content'
+
+user_id_send_email_change:
+  post:
+    tags:
+      - User
+    summary: Send an email to confirm user new email
+    operationId: IamUserEmailChangePost
+    parameters:
+      - $ref: '../component/parameter.yml#/id'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: 'resource.yml#/PostSendChangeUserEmail'
+      required: true
+    security:
+      - UserAuthorization: []
+    responses:
+      '204':
+        $ref: '../component/response.yml#/empty_response'
+      '400':
+        $ref: '../component/response.yml#/malformated_schema'
+      '422':
+        $ref: '../component/response.yml#/invalid_content'
+
+user_id_change_email:
+  post:
+    tags:
+      - User
+    summary: Confirm user new email
+    operationId: IamUserConfirmEmailChangePost
+    parameters:
+      - $ref: '../component/parameter.yml#/id'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: 'resource.yml#/PostChangeUserEmail'
+      required: true
+    security:
+      - ChangeUserEmailAuthorization: []
+    responses:
+      '204':
+        $ref: '../component/response.yml#/empty_response'
+      '400':
+        $ref: '../component/response.yml#/malformated_schema'
+      '422':
+        $ref: '../component/response.yml#/invalid_content'
+
+user_send_password_reset:
+  post:
+    tags:
+      - User
+    summary: Send a password reset message to the user
+    operationId: IamUserResetPasswordMessagePost
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: 'resource.yml#/PostSendUserPasswordReset'
+      required: true
+    responses:
+      '204':
+        $ref: '../component/response.yml#/empty_response'
+      '400':
+        $ref: '../component/response.yml#/malformated_schema'
+      '422':
+        $ref: '../component/response.yml#/invalid_content'
+
+user_reset_password:
+  post:
+    tags:
+      - User
+    summary: Reset user password
+    operationId: IamUserResetPasswordPost
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: 'resource.yml#/PostResetUserPassword'
+      required: true
+    security:
+      - ResetUserPasswordAuthorization: []
+    responses:
+      '204':
+        $ref: '../component/response.yml#/empty_response'
+      '400':
+        $ref: '../component/response.yml#/malformated_schema'
+      '422':
+        $ref: '../component/response.yml#/invalid_content'
