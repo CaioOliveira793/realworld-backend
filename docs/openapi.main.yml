@@ -17,6 +17,7 @@ servers:
 # - Conflict
 # - Internal server error
 # - Service unavailable
+# TODO: add cache control headers (ETag, Last-Modified, Cache-Control)
 paths:
   /iam/auth:
     $ref: 'iam/auth.yml#'

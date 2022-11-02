@@ -15,16 +15,16 @@ user:
         $ref: 'response.yml#/user_list'
 
 user_id:
-  get:
-    tags:
-      - User
-    summary: Read user
-    operationId: IamUserGet
-    parameters:
-      - $ref: '../component/parameter.yml#/id'
-    responses:
-      '200':
-        $ref: 'response.yml#/user_resource'
+  # get:
+  #   tags:
+  #     - User
+  #   summary: Read user
+  #   operationId: IamUserGet
+  #   parameters:
+  #     - $ref: '../component/parameter.yml#/id'
+  #   responses:
+  #     '200':
+  #       $ref: 'response.yml#/user_resource'
   post:
     tags:
       - User
@@ -46,27 +46,27 @@ user_id:
         $ref: '../component/response.yml#/malformated_schema'
       '422':
         $ref: '../component/response.yml#/invalid_content'
-  put:
-    tags:
-      - User
-    summary: Update user
-    description: Update existent user
-    operationId: IamUserPut
-    parameters:
-      - $ref: '../component/parameter.yml#/id'
-    requestBody:
-      content:
-        application/json:
-          schema:
-            $ref: 'resource.yml#/PutUser'
-      required: true
-    responses:
-      '200':
-        $ref: 'response.yml#/user_resource'
-      '400':
-        $ref: '../component/response.yml#/malformated_schema'
-      '422':
-        $ref: '../component/response.yml#/invalid_content'
+  # put:
+  #   tags:
+  #     - User
+  #   summary: Update user
+  #   description: Update existent user
+  #   operationId: IamUserPut
+  #   parameters:
+  #     - $ref: '../component/parameter.yml#/id'
+  #   requestBody:
+  #     content:
+  #       application/json:
+  #         schema:
+  #           $ref: 'resource.yml#/PutUser'
+  #     required: true
+  #   responses:
+  #     '200':
+  #       $ref: 'response.yml#/user_resource'
+  #     '400':
+  #       $ref: '../component/response.yml#/malformated_schema'
+  #     '422':
+  #       $ref: '../component/response.yml#/invalid_content'
 
 user_me:
   put:
@@ -101,7 +101,7 @@ user_id_change_password:
     tags:
       - User
     summary: Update user password
-    operationId: IamUserPasswordPatch
+    operationId: IamUserChangePasswordPost
     parameters:
       - $ref: '../component/parameter.yml#/id'
     requestBody:

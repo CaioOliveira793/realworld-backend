@@ -75,7 +75,7 @@ article_id:
         $ref: '../component/response.yml#/empty_response'
 
 article_id_tags:
-  patch:
+  put:
     tags:
     - Article
     summary: Update article tags
