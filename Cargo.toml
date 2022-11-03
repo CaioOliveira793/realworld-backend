@@ -20,7 +20,7 @@ tokio = { version = "1.20.1", features = ["macros", "rt-multi-thread", "signal",
 serde = { version = "1.0.143", features = ["derive"] }
 serde_json = { version = "1.0.86" }
 
-tokio-postgres = { version = "0.7.7", features = ["array-impls", "with-chrono-0_4"] }
+tokio-postgres = { version = "0.7.7", features = ["array-impls", "with-chrono-0_4", "with-uuid-1"] }
 tokio-postgres-rustls = "0.9.0"
 deadpool-postgres = "0.10.2"
 postgres-types = { version = "0.2.4", features = ["derive"] }
@@ -31,6 +31,7 @@ reqwest = { version = "0.11.12", default-features = false, features = ["rustls-t
 rustls = "0.20.6"
 webpki-roots = "0.22.4"
 
+uuid = { version = "1.2.1", features = ["v4", "serde"] }
 url = { version = "2.3.1" }
 chrono = { version = "0.4.22", features = ["serde", "clock"] }
 

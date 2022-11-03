@@ -16,7 +16,7 @@ pub mod database {
     use tokio_postgres::NoTls;
     use tokio_postgres_rustls::MakeRustlsConnect;
 
-    use crate::{config, domain::entity::User};
+    use crate::config;
 
     fn pool_config() -> Config {
         let config = config::env_var::get().clone();
@@ -107,11 +107,11 @@ pub mod database {
 
             for user in users {
                 sttm.values_panic([
-                    user.email.into(),
-                    user.password.into(),
-                    user.username.into(),
-                    user.bio.into(),
-                    user.image.into(),
+                    user.email().into(),
+                    user.password_hash().into(),
+                    user.username().into(),
+                    user.bio().into(),
+                    user.image_url().into(),
                 ]);
             }
 
@@ -174,7 +174,7 @@ pub mod database {
             let row = client.query_opt(&sttm.0, &sttm.1.as_params()).await?;
 
             if let Some(row) = row {
-                return Ok(Some(row.into()));
+                return Ok(Some(User::from(&row)));
             }
 
             Ok(None)
@@ -194,18 +194,6 @@ pub mod database {
             Ok(found_usernames)
         }
     }
-
-    impl From<tokio_postgres::Row> for User {
-        fn from(row: tokio_postgres::Row) -> Self {
-            User {
-                email: row.get("email"),
-                username: row.get("username"),
-                password: row.get("password"),
-                image: row.get("image"),
-                bio: row.get("bio"),
-            }
-        }
-    }
 }
 
 pub mod handler {
@@ -214,7 +202,7 @@ pub mod handler {
         resource::*,
     };
     use crate::{
-        app::resource::{CreateUserDto, UserResponse},
+        app::resource::iam::{CreateUserDto, UserResponse},
         domain::entity::User,
         infra::error::http::BadRequest,
     };
@@ -263,7 +251,7 @@ pub mod handler {
 
             let client = extract_client(&self.db_pool).await;
 
-            let result = repository::usernames_exists(&client, [user.username.clone()]).await;
+            let result = repository::usernames_exists(&client, [user.username().clone()]).await;
             let usernames = map_res_err!(result, res);
             if !usernames.is_empty() {
                 res.set_status_error(StatusError::bad_request());

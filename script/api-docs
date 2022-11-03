@@ -2,7 +2,4 @@
 
 set -o errexit
 
-# The swagger-ui-cli package must be globally installed
-# https://github.com/egomobile/swagger-ui-cli
-
-swagger-ui https://raw.githubusercontent.com/gothinkster/realworld/main/api/openapi.yml --allow-scripts --do-not-open
+swagger-ui out/openapi.yml --allow-scripts --do-not-open
