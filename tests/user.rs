@@ -8,11 +8,6 @@ use crate::setup::{create_client, setup_database};
 mod setup;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UserResource<T> {
-    pub user: T,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateUserDto<'a> {
     pub username: &'a str,
     pub email: &'a str,
@@ -34,27 +29,25 @@ async fn insert_user() {
     setup_database();
     let client = create_client();
 
-    let user_resource = UserResource {
-        user: CreateUserDto {
-            email: "some@email.com",
-            username: "user12345",
-            password: "secure:12345678",
-        },
+    let dto = CreateUserDto {
+        email: "some@email.com",
+        username: "user12345",
+        password: "secure:12345678",
     };
 
     let req = client
-        .post(test_url().join("/api/users").unwrap())
-        .json(&user_resource)
+        .post(test_url().join("/api/user").unwrap())
+        .json(&dto)
         .build()
         .unwrap();
 
     let res = client.execute(req).await.unwrap();
 
-    let created_user: UserResource<UserResponse> = res.json().await.unwrap();
+    let user: UserResponse = res.json().await.unwrap();
 
-    assert_eq!(created_user.user.email, user_resource.user.email);
-    assert_eq!(created_user.user.username, user_resource.user.username);
-    assert_eq!(created_user.user.password, user_resource.user.password);
-    assert_eq!(created_user.user.bio, "");
-    assert_eq!(created_user.user.image, "");
+    assert_eq!(user.email, dto.email);
+    assert_eq!(user.username, dto.username);
+    assert_eq!(user.password, dto.password);
+    assert_eq!(user.bio, "");
+    assert_eq!(user.image, "");
 }

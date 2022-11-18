@@ -1,5 +1,5 @@
 [toolchain]
 channel = "1.64"
-components = [ "rustfmt" ]
+components = [ "rustfmt", "clippy" ]
 targets = [ "x86_64-unknown-linux-gnu" ]
 profile = "default"

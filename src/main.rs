@@ -1,3 +1,5 @@
+#![warn(clippy::unwrap_used)]
+
 use std::net::SocketAddrV4;
 
 use salvo::{listener::TcpListener, logging::Logger, Server};
@@ -7,13 +9,15 @@ use config::env_var;
 use infra::{database, router};
 
 mod app;
+mod base;
 mod config;
 mod domain;
+mod error;
 mod infra;
 
 async fn handle_shutdown() {
     match ctrl_c().await {
-        Ok(_) => return,
+        Ok(_) => (),
         Err(err) => {
             tracing::error!(
                 target = "conduit::error::signal",

@@ -1,6 +1,7 @@
 pub mod resource {
     use chrono::{DateTime, Utc};
     use serde::{Deserialize, Serialize};
+    use url::Url;
     use uuid::Uuid;
 
     pub mod iam {
@@ -25,7 +26,7 @@ pub mod resource {
             pub username: String,
             pub email: String,
             pub bio: Option<String>,
-            pub image_url: Option<String>,
+            pub image_url: Option<Url>,
             pub created: DateTime<Utc>,
             pub updated: Option<DateTime<Utc>>,
         }
@@ -34,6 +35,12 @@ pub mod resource {
         pub struct AuthenticateUserDto<'a> {
             email: &'a str,
             password: &'a str,
+        }
+
+        #[derive(Debug, Clone, Serialize)]
+        pub struct AuthenticateUserResponse {
+            pub user: UserResponse,
+            pub token: String,
         }
     }
 
@@ -117,7 +124,7 @@ pub mod resource {
     }
 
     #[derive(Debug, Clone, Serialize)]
-    pub struct ArticleCOmmentVoteResponse {
+    pub struct ArticleCommentVoteResponse {
         pub id: Uuid,
         pub article_id: Uuid,
         pub profile_id: Uuid,
@@ -131,7 +138,10 @@ pub mod transform {
     pub mod user {
         use crate::{
             app::resource::iam::{CreateUserDto, UserResponse},
-            domain::entity::{Entity, User, UserState},
+            domain::entity::{
+                iam::{User, UserState},
+                Entity,
+            },
         };
 
         impl<'a> From<CreateUserDto<'a>> for User {
@@ -144,10 +154,10 @@ pub mod transform {
             fn from(user: User) -> Self {
                 Self {
                     id: user.ident(),
-                    username: user.username(),
-                    email: user.email(),
-                    bio: user.bio(),
-                    image_url: user.image_url(),
+                    username: user.username().clone(),
+                    email: user.email().clone(),
+                    bio: user.bio().clone(),
+                    image_url: user.image_url().clone(),
                     created: user.created(),
                     updated: user.updated(),
                 }
@@ -155,3 +165,7 @@ pub mod transform {
         }
     }
 }
+
+pub mod use_case {}
+
+pub mod query {}
