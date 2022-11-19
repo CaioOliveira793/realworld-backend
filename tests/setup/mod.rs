@@ -1,25 +1,27 @@
-use lazy_static::lazy_static;
-use reqwest::header::{HeaderMap, HeaderValue};
+use pg_pool::{Config, ManagerConfig, Pool, RecyclingMethod, Runtime, SslMode};
+use pg_tokio::NoTls;
+use reqwest::{
+    header::{HeaderMap, HeaderValue},
+    Client,
+};
+use url::Url;
 
-use std::{process::Command, time::Duration};
+use std::time::Duration;
 
-lazy_static! {
-    static ref URL: url::Url = url::Url::parse("http://localhost:3333").unwrap();
-}
-
-pub fn test_url() -> &'static url::Url {
-    &URL
-}
-
-fn handle_sqlx_cmd(cmd: &mut Command) {
-    if cmd.spawn().unwrap().wait().unwrap().success() {
-        panic!("Could not exec sqlx command to setup the database");
-    }
-}
-
-pub fn setup_database() {
+pub async fn setup_test() -> (Client, Url, Pool) {
     dotenv::dotenv().unwrap();
+    (create_client(), service_url(), setup_database().await)
+}
 
+fn service_url() -> Url {
+    let port: u16 = std::env::var("PORT")
+        .unwrap()
+        .parse()
+        .expect("Invalid PORT");
+    Url::parse(format!("http://localhost:{port}").as_str()).unwrap()
+}
+
+async fn setup_database() -> pg_pool::Pool {
     let host = std::env::var("DATABASE_HOST").unwrap();
     let db_name = std::env::var("DATABASE_NAME").unwrap();
     let user = std::env::var("DATABASE_USER").unwrap();
@@ -28,38 +30,39 @@ pub fn setup_database() {
         .unwrap()
         .parse()
         .expect("Invalid DATABASE_PORT");
-    let database_url = format!("postgresql://{user}:{password}@{host}:{port}/{db_name}");
+    let mut cfg = Config::new();
+    cfg.host = Some(host);
+    cfg.dbname = Some(db_name);
+    cfg.port = Some(port);
+    cfg.user = Some(user);
+    cfg.password = Some(password);
+    cfg.manager = Some(ManagerConfig {
+        recycling_method: RecyclingMethod::Fast,
+    });
+    cfg.ssl_mode = Some(SslMode::Prefer);
 
-    // sqlx database drop --database-url DATABASE_URL -y
-    handle_sqlx_cmd(
-        Command::new("sqlx")
-            .arg("database")
-            .arg("drop")
-            .arg("--database-url")
-            .arg(&database_url)
-            .arg("-y"),
-    );
+    let pool = cfg
+        .create_pool(Some(Runtime::Tokio1), NoTls)
+        .expect("should create a connection pool");
 
-    // sqlx database create --database-url DATABASE_URL
-    handle_sqlx_cmd(
-        Command::new("sqlx")
-            .arg("database")
-            .arg("create")
-            .arg("--database-url")
-            .arg(&database_url),
-    );
+    let mut client = pool
+        .get()
+        .await
+        .expect("should retrieve database client from pool");
 
-    // sqlx migrate run --database-url DATABASE_URL
-    handle_sqlx_cmd(
-        Command::new("sqlx")
-            .arg("migrate")
-            .arg("run")
-            .arg("--database-url")
-            .arg(&database_url),
-    );
+    let trx = client.transaction().await.unwrap();
+    trx.query("DROP SCHEMA IF EXISTS iam, blog CASCADE", &[])
+        .await
+        .unwrap();
+    trx.batch_execute(include_str!("../../dbschema.sql"))
+        .await
+        .unwrap();
+    trx.commit().await.unwrap();
+
+    pool
 }
 
-pub fn create_client() -> reqwest::Client {
+fn create_client() -> reqwest::Client {
     let mut headers = HeaderMap::new();
     headers.append("accept", HeaderValue::from_static("application/json"));
 

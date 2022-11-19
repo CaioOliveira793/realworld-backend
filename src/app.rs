@@ -23,12 +23,13 @@ pub mod resource {
         #[derive(Debug, Clone, Serialize)]
         pub struct UserResponse {
             pub id: Uuid,
+            pub created: DateTime<Utc>,
+            pub updated: Option<DateTime<Utc>>,
+            pub version: u32,
             pub username: String,
             pub email: String,
             pub bio: Option<String>,
             pub image_url: Option<Url>,
-            pub created: DateTime<Utc>,
-            pub updated: Option<DateTime<Utc>>,
         }
 
         #[derive(Debug, Clone, Deserialize)]
@@ -154,12 +155,13 @@ pub mod transform {
             fn from(user: User) -> Self {
                 Self {
                     id: user.ident(),
+                    created: user.created(),
+                    updated: user.updated(),
+                    version: user.version(),
                     username: user.username().clone(),
                     email: user.email().clone(),
                     bio: user.bio().clone(),
                     image_url: user.image_url().clone(),
-                    created: user.created(),
-                    updated: user.updated(),
                 }
             }
         }

@@ -45,14 +45,14 @@ impl<'a> From<&'a str> for UnknownError {
     }
 }
 
-impl From<tokio_postgres::Error> for UnknownError {
-    fn from(err: tokio_postgres::Error) -> Self {
+impl From<pg_tokio::Error> for UnknownError {
+    fn from(err: pg_tokio::Error) -> Self {
         UnknownError(err.into())
     }
 }
 
-impl From<deadpool_postgres::PoolError> for UnknownError {
-    fn from(err: deadpool_postgres::PoolError) -> Self {
+impl From<pg_pool::PoolError> for UnknownError {
+    fn from(err: pg_pool::PoolError) -> Self {
         UnknownError(err.into())
     }
 }
@@ -151,15 +151,15 @@ pub mod storage {
     #[derive(Debug, Display, Error)]
     pub enum DatabaseError {
         #[display(fmt = "database error: {_0}")]
-        Db(tokio_postgres::error::DbError),
+        Db(pg_tokio::error::DbError),
         #[display(fmt = "database connection error: {_0}")]
         Connection(DispatchError),
         #[display(fmt = "unknown database error: {_0}")]
         Unknown(UnknownError),
     }
 
-    impl From<tokio_postgres::Error> for DatabaseError {
-        fn from(err: tokio_postgres::Error) -> Self {
+    impl From<pg_tokio::Error> for DatabaseError {
+        fn from(err: pg_tokio::Error) -> Self {
             if let Some(db_err) = err.as_db_error() {
                 tracing::error!("DatabaseError {db_err:?}");
                 return DatabaseError::Db(db_err.clone());
@@ -170,10 +170,10 @@ pub mod storage {
         }
     }
 
-    impl From<deadpool_postgres::PoolError> for DatabaseError {
-        fn from(err: deadpool_postgres::PoolError) -> Self {
+    impl From<pg_pool::PoolError> for DatabaseError {
+        fn from(err: pg_pool::PoolError) -> Self {
             match err {
-                deadpool_postgres::PoolError::Backend(back) => {
+                pg_pool::PoolError::Backend(back) => {
                     if let Some(db) = back.as_db_error() {
                         tracing::error!("Error retrieving database connection from pool {db:?}");
                         return Self::Db(db.clone());
@@ -182,11 +182,11 @@ pub mod storage {
                     tracing::error!("Error retrieving database connection from pool {back:?}");
                     Self::Connection(DispatchError::Unknown(back.into()))
                 }
-                deadpool_postgres::PoolError::Timeout(_) => {
+                pg_pool::PoolError::Timeout(_) => {
                     tracing::error!("TimeoutError retrieving database connection from pool");
                     Self::Connection(DispatchError::Timeout(err.into()))
                 }
-                deadpool_postgres::PoolError::NoRuntimeSpecified => {
+                pg_pool::PoolError::NoRuntimeSpecified => {
                     panic!("Error retrieving database connection from pool: No runtime specified");
                 }
                 err => {

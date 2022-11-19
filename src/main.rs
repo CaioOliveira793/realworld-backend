@@ -31,7 +31,7 @@ async fn handle_shutdown() {
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let pool = database::create_pool().await;
+    let pool = database::connection::create_sqlx_pool().await;
     let address = SocketAddrV4::new([0, 0, 0, 0].into(), env_var::get().port);
     let router = router::app(pool).hoop(Logger);
     let listener = TcpListener::bind(&address);

@@ -14,6 +14,7 @@ pub mod env_var {
         pub database_name: String,
         pub database_user: String,
         pub database_password: String,
+        pub database_url: String,
     }
 
     macro_rules! get_env {
@@ -33,6 +34,8 @@ pub mod env_var {
             .parse()
             .expect("Invalid DATABASE_PORT");
 
+        let database_url = format!("postgres://{database_user}:{database_password}@{database_host}:{database_port}/{database_name}");
+
         EnvVar {
             port,
             token_key,
@@ -41,6 +44,7 @@ pub mod env_var {
             database_password,
             database_port,
             database_user,
+            database_url,
         }
     }
 

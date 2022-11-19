@@ -4,8 +4,8 @@ use super::entity::{
 };
 use crate::app::resource::iam::CreateUserDto;
 
-impl From<&tokio_postgres::Row> for EntityData {
-    fn from(row: &tokio_postgres::Row) -> Self {
+impl From<&pg_tokio::Row> for EntityData {
+    fn from(row: &pg_tokio::Row) -> Self {
         Self {
             id: row.get("id"),
             created: row.get("created"),
@@ -27,8 +27,8 @@ impl<'a> From<CreateUserDto<'a>> for UserState {
     }
 }
 
-impl From<&tokio_postgres::Row> for UserState {
-    fn from(row: &tokio_postgres::Row) -> Self {
+impl From<&pg_tokio::Row> for UserState {
+    fn from(row: &pg_tokio::Row) -> Self {
         Self {
             email: row.get("email"),
             username: row.get("username"),
@@ -42,8 +42,8 @@ impl From<&tokio_postgres::Row> for UserState {
     }
 }
 
-impl From<&tokio_postgres::Row> for User {
-    fn from(row: &tokio_postgres::Row) -> Self {
+impl From<&pg_tokio::Row> for User {
+    fn from(row: &pg_tokio::Row) -> Self {
         Self::restore(row.into(), row.into())
     }
 }
