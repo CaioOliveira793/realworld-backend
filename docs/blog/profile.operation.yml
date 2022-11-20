@@ -74,6 +74,8 @@ profile_follow_id:
           schema:
             $ref: 'resource.yml#/PutFollow'
       required: true
+    security:
+      - UserAuthentication: []
     responses:
       '200':
         $ref: 'response.yml#/follow_resource'
@@ -89,6 +91,8 @@ profile_follow_id:
     operationId: BlogProfileFollowDelete
     parameters:
     - $ref: '../component/parameter.yml#/id'
+    security:
+      - UserAuthentication: []
     responses:
       '204':
         $ref: '../component/response.yml#/empty_response'

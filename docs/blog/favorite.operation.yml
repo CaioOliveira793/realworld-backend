@@ -36,6 +36,8 @@ favorite_id:
           schema:
             $ref: 'resource.yml#/PutArticleFavorite'
       required: true
+    security:
+      - UserAuthentication: []
     responses:
       '200':
         $ref: 'response.yml#/article_favorite_resource'
@@ -46,6 +48,8 @@ favorite_id:
     operationId: BlogArticleFavoriteDelete
     parameters:
     - $ref: '../component/parameter.yml#/id'
+    security:
+      - UserAuthentication: []
     responses:
       '204':
         $ref: '../component/response.yml#/empty_response'

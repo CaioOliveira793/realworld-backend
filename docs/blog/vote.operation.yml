@@ -35,27 +35,29 @@ vote:
 vote_id:
   get:
     tags:
-    - Comment Vote
+      - Comment Vote
     summary: Read comment vote
     operationId: BlogArticleCommentVoteGet
     parameters:
-    - $ref: '../component/parameter.yml#/id'
+      - $ref: '../component/parameter.yml#/id'
     responses:
       '200':
         $ref: 'response.yml#/article_comment_vote_resource'
   put:
     tags:
-    - Comment Vote
+      - Comment Vote
     summary: Vote in an article comment
     operationId: BlogArticleCommentVotePut
     parameters:
-    - $ref: '../component/parameter.yml#/id'
+      - $ref: '../component/parameter.yml#/id'
     requestBody:
       content:
         application/json:
           schema:
             $ref: 'resource.yml#/PutArticleCommentVote'
       required: true
+    security:
+      - UserAuthentication: []
     responses:
       '200':
         $ref: 'response.yml#/article_comment_vote_resource'
@@ -65,11 +67,13 @@ vote_id:
         $ref: '../component/response.yml#/invalid_content'
   delete:
     tags:
-    - Comment Vote
+      - Comment Vote
     summary: Remove a vote on an article comment
     operationId: BlogArticleCommentVoteDelete
     parameters:
-    - $ref: '../component/parameter.yml#/id'
+      - $ref: '../component/parameter.yml#/id'
+    security:
+      - UserAuthentication: []
     responses:
       '204':
         $ref: '../component/response.yml#/empty_response'

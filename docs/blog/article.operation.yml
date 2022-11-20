@@ -56,6 +56,8 @@ article_id:
           schema:
             $ref: 'resource.yml#/PutArticle'
       required: true
+    security:
+      - UserAuthentication: []
     responses:
       '200':
         $ref: 'response.yml#/article_resource'
@@ -70,6 +72,8 @@ article_id:
     operationId: BlogArticleDelete
     parameters:
     - $ref: '../component/parameter.yml#/id'
+    security:
+      - UserAuthentication: []
     responses:
       '204':
         $ref: '../component/response.yml#/empty_response'
@@ -88,6 +92,8 @@ article_id_tags:
           schema:
             $ref: 'resource.yml#/PutTags'
       required: true
+    security:
+      - UserAuthentication: []
     responses:
       '200':
         $ref: 'response.yml#/article_resource'
@@ -146,6 +152,8 @@ article_id_version_id:
           schema:
             $ref: 'resource.yml#/PutArticle'
       required: true
+    security:
+      - UserAuthentication: []
     responses:
       '200':
         $ref: 'response.yml#/article_resource'

@@ -47,6 +47,8 @@ comment_id:
           schema:
             $ref: 'resource.yml#/PutArticleComment'
       required: true
+    security:
+      - UserAuthentication: []
     responses:
       '200':
         $ref: 'response.yml#/article_comment_resource'
@@ -62,7 +64,9 @@ comment_id:
       Hard delete the comment of an article.
     operationId: BlogArticleCommentDelete
     parameters:
-    - $ref: '../component/parameter.yml#/id'
+      - $ref: '../component/parameter.yml#/id'
+    security:
+      - UserAuthentication: []
     responses:
       '204':
         $ref: '../component/response.yml#/empty_response'

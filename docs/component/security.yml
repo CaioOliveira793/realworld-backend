@@ -1,5 +1,5 @@
-UserAuthorization:
-  description: Authorization scheme for user authorization
+UserAuthentication:
+  description: Authentication scheme for user authentication
   type: http
   scheme: bearer
   bearerFormat: JWT

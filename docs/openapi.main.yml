@@ -70,8 +70,8 @@ paths:
 
 components:
   securitySchemes:
-    UserAuthorization:
-      $ref: 'component/security.yml#/UserAuthorization'
+    UserAuthentication:
+      $ref: 'component/security.yml#/UserAuthentication'
     ResetUserPasswordAuthorization:
       $ref: 'component/security.yml#/ResetUserPasswordAuthorization'
     ChangeUserEmailAuthorization:

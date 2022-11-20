@@ -60,6 +60,8 @@ user_id:
   #         schema:
   #           $ref: 'resource.yml#/PutUser'
   #     required: true
+  #   security:
+  #     - UserAuthentication: []
   #   responses:
   #     '200':
   #       $ref: 'response.yml#/user_resource'
@@ -80,6 +82,8 @@ user_me:
           schema:
             $ref: 'resource.yml#/PutUser'
       required: true
+    security:
+      - UserAuthentication: []
     responses:
       '200':
         $ref: 'response.yml#/user_resource'
@@ -92,6 +96,8 @@ user_me:
       - User
     summary: Read authenticated user
     operationId: IamUserMeGet
+    security:
+      - UserAuthentication: []
     responses:
       '200':
         $ref: 'response.yml#/user_resource'
@@ -111,7 +117,7 @@ user_id_change_password:
             $ref: 'resource.yml#/PostChangeUserPassword'
       required: true
     security:
-      - UserAuthorization: []
+      - UserAuthentication: []
     responses:
       '200':
         $ref: 'response.yml#/user_resource'
@@ -135,7 +141,7 @@ user_id_send_email_change:
             $ref: 'resource.yml#/PostSendChangeUserEmail'
       required: true
     security:
-      - UserAuthorization: []
+      - UserAuthentication: []
     responses:
       '204':
         $ref: '../component/response.yml#/empty_response'
@@ -180,6 +186,8 @@ user_send_password_reset:
           schema:
             $ref: 'resource.yml#/PostSendUserPasswordReset'
       required: true
+    security:
+      - UserAuthentication: []
     responses:
       '204':
         $ref: '../component/response.yml#/empty_response'
