@@ -27,16 +27,16 @@ paths:
     $ref: 'iam/user.operation.yml#/user_me'
   /iam/user/{id}:
     $ref: 'iam/user.operation.yml#/user_id'
-  /iam/user/{id}/change_password:
-    $ref: 'iam/user.operation.yml#/user_id_change_password'
-  /iam/user/{id}/send_email_change:
-    $ref: 'iam/user.operation.yml#/user_id_send_email_change'
-  /iam/user/{id}/change_email:
-    $ref: 'iam/user.operation.yml#/user_id_change_email'
-  /iam/user/send_password_reset:
-    $ref: 'iam/user.operation.yml#/user_send_password_reset'
-  /iam/user/reset_password:
-    $ref: 'iam/user.operation.yml#/user_reset_password'
+  # /iam/user/{id}/change_password:
+  #   $ref: 'iam/user.operation.yml#/user_id_change_password'
+  # /iam/user/{id}/send_email_change:
+  #   $ref: 'iam/user.operation.yml#/user_id_send_email_change'
+  # /iam/user/{id}/change_email:
+  #   $ref: 'iam/user.operation.yml#/user_id_change_email'
+  # /iam/user/send_password_reset:
+  #   $ref: 'iam/user.operation.yml#/user_send_password_reset'
+  # /iam/user/reset_password:
+  #   $ref: 'iam/user.operation.yml#/user_reset_password'
   /profile:
     $ref: 'blog/profile.operation.yml#/profile'
   /profile/{id}:

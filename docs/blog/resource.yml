@@ -1,40 +1,34 @@
 Profile:
-  description: Public user profile
-  type: object
-  properties:
-    id:
-      type: string
-      format: uuid
-    username:
-      type: string
-    bio:
-      type: string
-    image_url:
-      type: string
-      format: uri
-  required:
-  - id
-  - username
-  - bio
-  - image_url
+  allOf:
+    - $ref: '../component/schema.yml#/Resource'
+    - description: Public user profile
+    - properties:
+        username:
+          type: string
+        bio:
+          type: string
+        image_url:
+          type: string
+          format: uri
+    - required:
+      - username
+      - bio
+      - image_url
 
 Follow:
-  description: Following relations of user profiles
-  type: object
-  properties:
-    id:
-      type: string
-      format: uuid
-    follower_id:
-      type: string
-      format: uuid
-    following_id:
-      type: string
-      format: uuid
-  required:
-  - id
-  - follower_id
-  - following_id
+  allOf:
+    - $ref: '../component/schema.yml#/Resource'
+    - description: Following relations of user profiles
+    - properties:
+        follower_id:
+          type: string
+          format: uuid
+        following_id:
+          type: string
+          format: uuid
+    - required:
+      - follower_id
+      - following_id
 
 PutFollow:
   type: object
@@ -43,53 +37,38 @@ PutFollow:
       type: string
       format: uuid
   required:
-  - following_id
+    - following_id
 
 Article:
-  type: object
-  properties:
-    id:
-      type: string
-      format: uuid
-    version_id:
-      type: string
-      format: uuid
-    version:
-      type: integer
-      format: int32
-      minimum: 1
-    slug:
-      type: string
-    title:
-      type: string
-    description:
-      type: string
-    body:
-      type: string
-    tags:
-      type: array
-      items:
-        type: string
-    author_id:
-      type: string
-      format: uuid
-    created:
-      type: string
-      format: date-time
-    updated:
-      type: string
-      format: date-time
-  required:
-  - id
-  - slug
-  - title
-  - description
-  - body
-  - tags
-  - author_id
-  - version
-  - created
-  - updated
+  allOf:
+    - $ref: '../component/schema.yml#/Resource'
+    - properties:
+        slug:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        body:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        author_id:
+          type: string
+          format: uuid
+        version_id:
+          type: string
+          format: uuid
+    - required:
+      - slug
+      - title
+      - description
+      - body
+      - tags
+      - author_id
+      - version_id
 
 PutArticle:
   type: object
@@ -101,26 +80,23 @@ PutArticle:
     body:
       type: string
   required:
-  - title
-  - description
-  - body
+    - title
+    - description
+    - body
 
 ArticleFavorite:
-  type: object
-  properties:
-    id:
-      type: string
-      format: uuid
-    article_id:
-      type: string
-      format: uuid
-    profile_id:
-      type: string
-      format: uuid
-  required:
-  - id
-  - article_id
-  - profile_id
+  allOf:
+    - $ref: '../component/schema.yml#/Resource'
+    - properties:
+        article_id:
+          type: string
+          format: uuid
+        profile_id:
+          type: string
+          format: uuid
+    - required:
+      - article_id
+      - profile_id
 
 PutArticleFavorite:
   type: object
@@ -129,31 +105,28 @@ PutArticleFavorite:
       type: string
       format: uuid
   required:
-  - article_id
+    - article_id
 
 ArticleComment:
-  type: object
-  properties:
-    id:
-      type: string
-      format: uuid
-    article_id:
-      type: string
-      format: uuid
-    profile_id:
-      type: string
-      format: uuid
-    message:
-      type: string
-    edited:
-      type: boolean
-      default: false
-  required:
-  - id
-  - article_id
-  - profile_id
-  - message
-  - edited
+  allOf:
+    - $ref: '../component/schema.yml#/Resource'
+    - properties:
+        article_id:
+          type: string
+          format: uuid
+        profile_id:
+          type: string
+          format: uuid
+        message:
+          type: string
+        edited:
+          type: boolean
+          default: false
+    - required:
+      - article_id
+      - profile_id
+      - message
+      - edited
 
 PutArticleComment:
   type: object
@@ -164,29 +137,24 @@ PutArticleComment:
     message:
       type: string
   required:
-  - article_id
-  - message
+    - article_id
+    - message
 
 ArticleCommentVote:
-  type: object
-  properties:
-    id:
-      type: string
-      format: uuid
-    article_id:
-      type: string
-      format: uuid
-    profile_id:
-      type: string
-      format: uuid
-    comment_id:
-      type: string
-      format: uuid
-    reaction:
-      type: string
-      enum:
-      - positive
-      - negative
+  allOf:
+    - $ref: '../component/schema.yml#/Resource'
+    - properties:
+        article_id:
+          type: string
+          format: uuid
+        profile_id:
+          type: string
+          format: uuid
+        comment_id:
+          type: string
+          format: uuid
+        reaction:
+          $ref: '#/Reaction'
 
 PutArticleCommentVote:
   type: object
@@ -200,8 +168,8 @@ PutArticleCommentVote:
 Reaction:
   type: string
   enum:
-  - positive
-  - negative
+    - positive
+    - negative
 
 PutTags:
   type: array

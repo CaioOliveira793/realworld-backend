@@ -103,35 +103,23 @@ PostChangeUserEmail:
   - password
 
 User:
-  type: object
-  properties:
-    id:
-      type: string
-      format: uuid
-    username:
-      type: string
-    email:
-      type: string
-      format: email
-    bio:
-      type: string
-      nullable: true
-    image_url:
-      type: string
-      format: uri
-      nullable: true
-    created:
-      type: string
-      format: date-time
-    updated:
-      type: string
-      format: date-time
-      nullable: true
-  required:
-  - id
-  - email
-  - username
-  - bio
-  - image_url
-  - created
-  - updated
+  allOf:
+    - $ref: '../component/schema.yml#/Resource'
+    - properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        bio:
+          type: string
+          nullable: true
+        image_url:
+          type: string
+          format: uri
+          nullable: true
+    - required:
+      - email
+      - username
+      - bio
+      - image_url
