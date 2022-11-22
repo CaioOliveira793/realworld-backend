@@ -17,20 +17,20 @@ pub mod iam {
     use url::Url;
     use uuid::Uuid;
 
-    #[derive(Debug, Clone, Deserialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct CreateUserDto<'a> {
         pub username: &'a str,
         pub email: &'a str,
         pub password: &'a str,
     }
 
-    #[derive(Debug, Clone, Deserialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct UpdateUserDto<'a> {
         bio: &'a str,
         image_url: &'a str,
     }
 
-    #[derive(Debug, Clone, Deserialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct AuthenticateUserDto<'a> {
         email: &'a str,
         password: &'a str,

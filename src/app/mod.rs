@@ -1,4 +1,5 @@
 pub mod resource;
+pub mod use_case;
 
 pub mod transform {
     pub mod user {
@@ -32,7 +33,5 @@ pub mod transform {
         }
     }
 }
-
-pub mod use_case {}
 
 pub mod query {}

@@ -13,7 +13,7 @@ pub mod connection {
             .max_lifetime(Duration::from_millis(1000 * 10))
             .connect(&dburl)
             .await
-            .unwrap()
+            .expect("Expect to create a database pool with a open connection")
     }
 }
 
@@ -44,10 +44,10 @@ pub mod repository {
     use super::sql;
     use crate::{
         domain::entity::{iam::User, Entity},
-        error::storage::DatabaseError,
+        error::persistence::PersistenceError,
     };
 
-    pub async fn insert_user<'u, I>(pool: &PgPool, users: I) -> Result<(), DatabaseError>
+    pub async fn insert_user<'u, I>(pool: &PgPool, users: I) -> Result<(), PersistenceError>
     where
         I: IntoIterator<Item = &'u User>,
     {
@@ -67,7 +67,7 @@ pub mod repository {
             qb.push_bind(user.image_url().clone().map(|url| url.to_string()));
         });
 
-        qb.build().execute(pool).await.unwrap();
+        qb.build().execute(pool).await?;
 
         Ok(())
     }
@@ -75,7 +75,7 @@ pub mod repository {
     pub async fn find_user<I>(
         pool: &PgPool,
         username: String,
-    ) -> Result<Option<User>, DatabaseError>
+    ) -> Result<Option<User>, PersistenceError>
     where
         I: IntoIterator<Item = User>,
     {
@@ -86,7 +86,7 @@ pub mod repository {
         .bind(username)
         .fetch(pool);
 
-        while let Some(_row) = rows.try_next().await.unwrap() {
+        while let Some(_row) = rows.try_next().await? {
             todo!("impl FromRow for User entity")
         }
 
@@ -96,7 +96,7 @@ pub mod repository {
     pub async fn usernames_exists<'u, I>(
         pool: &PgPool,
         usernames: I,
-    ) -> Result<HashSet<String>, DatabaseError>
+    ) -> Result<HashSet<String>, PersistenceError>
     where
         I: IntoIterator<Item = &'u String>,
     {
@@ -106,7 +106,7 @@ pub mod repository {
         let mut rows = qb.build().fetch(pool);
 
         let mut set = HashSet::new();
-        while let Some(row) = rows.try_next().await.unwrap() {
+        while let Some(row) = rows.try_next().await? {
             set.insert(row.get(0));
         }
 

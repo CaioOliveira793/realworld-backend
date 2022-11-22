@@ -1,19 +1,14 @@
 pub mod database;
 
 pub mod handler {
-    use super::database::repository;
+    use async_trait::async_trait;
+    use salvo::{http::StatusCode, writer::Json, Depot, FlowCtrl, Handler, Request, Response};
+    use sqlx::PgPool;
+
     use crate::{
-        app::resource::iam::{CreateUserDto, UserResponse},
-        domain::entity::iam::User,
+        app::{resource::iam::CreateUserDto, use_case},
         error::http::BadRequest,
     };
-
-    use async_trait::async_trait;
-    use salvo::{
-        http::StatusCode, prelude::StatusError, writer::Json, Depot, FlowCtrl, Handler, Request,
-        Response,
-    };
-    use sqlx::PgPool;
 
     macro_rules! map_res_err {
         ($result:ident, $response:ident) => {
@@ -28,12 +23,12 @@ pub mod handler {
     }
 
     pub struct CreateUserHandler {
-        db_pool: PgPool,
+        pool: PgPool,
     }
 
     impl CreateUserHandler {
-        pub fn new(db_pool: PgPool) -> Self {
-            Self { db_pool }
+        pub fn new(pool: PgPool) -> Self {
+            Self { pool }
         }
     }
 
@@ -49,20 +44,10 @@ pub mod handler {
             let result: Result<CreateUserDto, _> = req.parse_body().await.map_err(BadRequest::from);
             let dto = map_res_err!(result, res);
 
-            let user = User::from(dto);
+            let result = use_case::iam::create_user(&self.pool, dto).await;
+            let user = map_res_err!(result, res);
 
-            let result =
-                repository::usernames_exists(&self.db_pool, [user.username().clone()].iter()).await;
-            let usernames = map_res_err!(result, res);
-            if !usernames.is_empty() {
-                res.set_status_error(StatusError::bad_request());
-                return;
-            }
-
-            let result = repository::insert_user(&self.db_pool, [user.clone()].iter()).await;
-            map_res_err!(result, res);
-
-            res.render(Json(UserResponse::from(user)));
+            res.render(Json(user));
             res.set_status_code(StatusCode::CREATED);
         }
     }
@@ -78,13 +63,13 @@ pub mod router {
 
     use super::handler::*;
 
-    pub fn app(db_pool: PgPool) -> Router {
+    pub fn app(pool: PgPool) -> Router {
         Router::new()
             .hoop(Logger)
-            .push(Router::with_path("api").push(user(db_pool)))
+            .push(Router::with_path("api").push(user(pool)))
     }
 
-    pub fn user(db_pool: PgPool) -> Router {
-        Router::with_path("user").post(CreateUserHandler::new(db_pool))
+    pub fn user(pool: PgPool) -> Router {
+        Router::with_path("user").post(CreateUserHandler::new(pool))
     }
 }

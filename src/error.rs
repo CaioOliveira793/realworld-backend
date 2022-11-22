@@ -57,6 +57,12 @@ impl From<pg_pool::PoolError> for UnknownError {
     }
 }
 
+impl From<sqlx::error::Error> for UnknownError {
+    fn from(err: sqlx::error::Error) -> Self {
+        Self::new(err.into())
+    }
+}
+
 impl Piece for UnknownError {
     fn render(self, res: &mut Response) {
         let status = StatusError::internal_server_error();
@@ -67,49 +73,132 @@ impl Piece for UnknownError {
 
 pub mod app {
     use derive_more::Display;
+    use salvo::{prelude::StatusError, writer::Json, Piece};
+    use serde::{Deserialize, Serialize};
 
-    #[derive(Debug, Display)]
+    use super::{
+        http::ErrorResponse,
+        persistence::PersistenceError,
+        resource::{ConflictError, ValidationError},
+    };
+
+    #[derive(Debug, Display, Serialize)]
+    pub enum OperationErrorKind<R> {
+        Validation(ValidationError<R>),
+        Conflict(ConflictError<R>),
+        Persistence(PersistenceError),
+    }
+
+    impl<R: std::error::Error> std::error::Error for OperationErrorKind<R> {}
+
+    impl<R> From<ValidationError<R>> for OperationErrorKind<R> {
+        fn from(err: ValidationError<R>) -> Self {
+            Self::Validation(err)
+        }
+    }
+
+    impl<R> From<ConflictError<R>> for OperationErrorKind<R> {
+        fn from(err: ConflictError<R>) -> Self {
+            Self::Conflict(err)
+        }
+    }
+
+    impl<R> From<PersistenceError> for OperationErrorKind<R> {
+        fn from(err: PersistenceError) -> Self {
+            Self::Persistence(err)
+        }
+    }
+
+    #[derive(Debug, Display, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
     pub enum OperationLayer {
         Domain,
         App,
         Infra,
     }
 
-    #[derive(Debug, Display)]
-    #[display(fmt = "OperationError in context {context}. {details}")]
-    pub struct OperationError<T: std::error::Error> {
+    #[derive(Debug, Display, Serialize)]
+    #[display(fmt = "OperationError in layer {layer} of {context} context. {details}")]
+    pub struct OperationError<R> {
         pub(super) context: &'static str,
-        pub(super) details: T,
+        pub(super) details: OperationErrorKind<R>,
         pub(super) layer: OperationLayer,
     }
 
-    impl<T: std::error::Error> OperationError<T> {
-        pub fn domain(context: &'static str, err: T) -> Self {
+    impl<R> OperationError<R> {
+        pub fn domain(context: &'static str, kind: OperationErrorKind<R>) -> Self {
             Self {
                 context,
                 layer: OperationLayer::Domain,
-                details: err,
+                details: kind,
             }
         }
 
-        pub fn app(context: &'static str, err: T) -> Self {
+        pub fn app(context: &'static str, kind: OperationErrorKind<R>) -> Self {
             Self {
                 context,
                 layer: OperationLayer::App,
-                details: err,
+                details: kind,
             }
         }
 
-        pub fn infra(context: &'static str, err: T) -> Self {
+        pub fn infra(context: &'static str, kind: OperationErrorKind<R>) -> Self {
             Self {
                 context,
                 layer: OperationLayer::Infra,
-                details: err,
+                details: kind,
             }
         }
     }
 
-    impl<T: std::error::Error> std::error::Error for OperationError<T> {}
+    impl<R: Serialize + Send> Piece for OperationError<R> {
+        fn render(self, res: &mut salvo::Response) {
+            match &self.details {
+                OperationErrorKind::Persistence(_) => {
+                    let status = StatusError::service_unavailable();
+                    res.render(Json(ErrorResponse::from_status_error(&status, ())));
+                    res.set_status_error(status);
+                }
+                OperationErrorKind::Validation(_) => {
+                    let status = StatusError::bad_request();
+                    res.render(Json(ErrorResponse::from_status_error(&status, self)));
+                    res.set_status_error(status);
+                }
+                OperationErrorKind::Conflict(_) => {
+                    let status = StatusError::conflict();
+                    res.render(Json(ErrorResponse::from_status_error(&status, self)));
+                    res.set_status_error(status);
+                }
+            }
+        }
+    }
+
+    impl<R> From<OperationErrorKind<R>> for OperationError<R> {
+        fn from(kind: OperationErrorKind<R>) -> Self {
+            match &kind {
+                OperationErrorKind::Conflict(_) => Self::app("unknown", kind),
+                OperationErrorKind::Validation(_) => Self::app("unknown", kind),
+                OperationErrorKind::Persistence(_) => Self::infra("unknown", kind),
+            }
+        }
+    }
+
+    impl<R> From<ValidationError<R>> for OperationError<R> {
+        fn from(err: ValidationError<R>) -> Self {
+            OperationErrorKind::from(err).into()
+        }
+    }
+
+    impl<R> From<ConflictError<R>> for OperationError<R> {
+        fn from(err: ConflictError<R>) -> Self {
+            OperationErrorKind::from(err).into()
+        }
+    }
+
+    impl<R> From<PersistenceError> for OperationError<R> {
+        fn from(err: PersistenceError) -> Self {
+            OperationErrorKind::from(err).into()
+        }
+    }
 }
 
 pub mod service {
@@ -119,64 +208,112 @@ pub mod service {
 
     #[derive(Debug, Display)]
     pub enum DispatchError {
-        #[display(fmt = "Dispatched operation timed out {_0}")]
-        Timeout(UnknownError),
-        #[display(fmt = "Invalid request {_0}")]
-        InvalidRequest(UnknownError),
+        #[display(fmt = "Dispatched operation timed out in {_0:?}")]
+        Timeout(Option<std::time::Duration>),
+        #[display(fmt = "Invalid input {_0:?}")]
+        InvalidInput(Option<UnknownError>),
         #[display(fmt = "IO error dispatching {_0}")]
-        IO(UnknownError),
+        IO(std::io::Error),
         #[display(fmt = "Unknown dispatch error {_0}")]
         Unknown(UnknownError),
     }
 
     impl std::error::Error for DispatchError {}
-
-    #[derive(Debug, Display)]
-    pub enum ResponseError {
-        #[display(fmt = "Unknown response error {_0}")]
-        Unknown(UnknownError),
-    }
 }
 
-pub mod storage {
-    use derive_more::{Display, Error};
-    use salvo::{prelude::StatusError, writer::Json, Piece, Response};
+pub mod persistence {
+    use std::io;
 
-    use super::{
-        http::ErrorResponse,
-        service::{DispatchError, ResponseError},
-        UnknownError,
-    };
+    use derive_more::Display;
+    use serde::Serialize;
 
-    #[derive(Debug, Display, Error)]
-    pub enum DatabaseError {
-        #[display(fmt = "database error: {_0}")]
-        Db(pg_tokio::error::DbError),
-        #[display(fmt = "database connection error: {_0}")]
+    use super::{service::DispatchError, UnknownError};
+
+    pub type SqlState = String;
+
+    #[derive(Debug, Display)]
+    pub enum PersistenceError {
+        #[display(fmt = "database persistence error: SQLSTATE {_0:?}")]
+        Database(Option<SqlState>),
+        #[display(fmt = "persistence layer connection error: {_0}")]
         Connection(DispatchError),
-        #[display(fmt = "unknown database error: {_0}")]
+        #[display(fmt = "PersistenceError data not found")]
+        NotFound,
+        #[display(fmt = "PersistenceError decoding data")]
+        DecodeData,
+        #[display(fmt = "PersistenceError data migration")]
+        DataMigration,
+        #[display(fmt = "unknown persistence error: {_0}")]
         Unknown(UnknownError),
     }
 
-    impl From<pg_tokio::Error> for DatabaseError {
-        fn from(err: pg_tokio::Error) -> Self {
-            if let Some(db_err) = err.as_db_error() {
-                tracing::error!("DatabaseError {db_err:?}");
-                return DatabaseError::Db(db_err.clone());
-            }
+    impl std::error::Error for PersistenceError {}
 
-            tracing::error!("UnknownDatabaseError {err:?}");
-            DatabaseError::Unknown(err.into())
+    impl Serialize for PersistenceError {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            serializer.serialize_none()
         }
     }
 
-    impl From<pg_pool::PoolError> for DatabaseError {
+    type SqlxError = sqlx::error::Error;
+
+    impl From<SqlxError> for PersistenceError {
+        fn from(err: SqlxError) -> Self {
+            match err {
+                SqlxError::Configuration(_) => {
+                    Self::Connection(DispatchError::IO(io::ErrorKind::InvalidInput.into()))
+                }
+                SqlxError::Database(db) => Self::Database(db.code().map(|code| code.into())),
+                SqlxError::Io(io) => Self::Connection(DispatchError::IO(io)),
+                SqlxError::Tls(_) => {
+                    Self::Connection(DispatchError::IO(io::ErrorKind::ConnectionRefused.into()))
+                }
+                SqlxError::Protocol(msg) => Self::Connection(DispatchError::IO(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    msg,
+                ))),
+                SqlxError::RowNotFound => Self::NotFound,
+                SqlxError::TypeNotFound { .. } => Self::DecodeData,
+                SqlxError::ColumnIndexOutOfBounds { .. } => Self::DecodeData,
+                SqlxError::ColumnNotFound(_) => Self::NotFound,
+                SqlxError::ColumnDecode { .. } => Self::DecodeData,
+                SqlxError::Decode(_) => Self::DecodeData,
+                SqlxError::PoolTimedOut => Self::Connection(DispatchError::Timeout(None)),
+                SqlxError::PoolClosed => {
+                    Self::Connection(DispatchError::IO(io::ErrorKind::NotConnected.into()))
+                }
+                SqlxError::WorkerCrashed => {
+                    tracing::error!("FATAL: sqlx background worker error, {err}");
+                    panic!("sqlx background worker error: {err}");
+                }
+                SqlxError::Migrate(_) => Self::DataMigration,
+                _ => PersistenceError::Unknown(err.into()),
+            }
+        }
+    }
+
+    impl From<pg_tokio::Error> for PersistenceError {
+        fn from(err: pg_tokio::Error) -> Self {
+            if let Some(db_err) = err.as_db_error() {
+                tracing::error!("DatabaseError {db_err:?}");
+                return PersistenceError::Database(Some(db_err.code().code().into()));
+            }
+
+            tracing::error!("UnknownDatabaseError {err:?}");
+            PersistenceError::Unknown(err.into())
+        }
+    }
+
+    impl From<pg_pool::PoolError> for PersistenceError {
         fn from(err: pg_pool::PoolError) -> Self {
             match err {
                 pg_pool::PoolError::Backend(back) => {
                     if let Some(db) = back.as_db_error() {
                         tracing::error!("Error retrieving database connection from pool {db:?}");
-                        return Self::Db(db.clone());
+                        return Self::Database(Some(db.code().code().into()));
                     }
 
                     tracing::error!("Error retrieving database connection from pool {back:?}");
@@ -184,7 +321,7 @@ pub mod storage {
                 }
                 pg_pool::PoolError::Timeout(_) => {
                     tracing::error!("TimeoutError retrieving database connection from pool");
-                    Self::Connection(DispatchError::Timeout(err.into()))
+                    Self::Connection(DispatchError::Timeout(None))
                 }
                 pg_pool::PoolError::NoRuntimeSpecified => {
                     panic!("Error retrieving database connection from pool: No runtime specified");
@@ -196,40 +333,14 @@ pub mod storage {
             }
         }
     }
-
-    impl Piece for DatabaseError {
-        fn render(self, res: &mut Response) {
-            let status = StatusError::service_unavailable();
-            res.render(Json(ErrorResponse::from_status_error(&status, ())));
-            res.set_status_error(status);
-        }
-    }
-
-    #[derive(Debug, Display)]
-    pub enum StorageError {
-        DispatchFailure(DispatchError),
-        InvalidResponse(ResponseError),
-        ObjectNotFound,
-        ObjectArchived,
-        Unknown(UnknownError),
-    }
-
-    impl std::error::Error for StorageError {}
-
-    impl From<UnknownError> for StorageError {
-        fn from(err: UnknownError) -> Self {
-            Self::Unknown(err)
-        }
-    }
 }
 
 pub mod resource {
     use derive_more::{Display, Error};
+    use serde::{Deserialize, Serialize};
     use uuid::Uuid;
 
-    use crate::base::ResourceID;
-
-    #[derive(Debug, Display, Clone, PartialEq, Eq, Hash)]
+    #[derive(Debug, Display, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
     pub enum ValidationErrorKind {
         /// Unexpected properties.
         #[display(fmt = "Validation error kind: additional_properties {_0:?}")]
@@ -293,8 +404,7 @@ pub mod resource {
     //     }
     // }
 
-    #[derive(Debug, Display, Error, Clone, PartialEq, Eq, Hash)]
-    #[display(fmt = "Invalid resource {resource_type}, fields {fields:?}")]
+    #[derive(Debug, Error, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
     pub struct ValidationError<R> {
         /// Resource value
         pub resource: R,
@@ -304,7 +414,16 @@ pub mod resource {
         pub fields: Vec<ValidationFieldError>,
     }
 
-    #[derive(Debug, Display, Error, Clone, PartialEq, Eq, Hash)]
+    impl<R> std::fmt::Display for ValidationError<R> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.write_fmt(format_args!(
+                "Invalid resource {}, fields {:?}",
+                self.resource_type, self.fields
+            ))
+        }
+    }
+
+    #[derive(Debug, Display, Error, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
     #[display(fmt = "{path}: {value:?}, {kinds:?}")]
     pub struct ValidationFieldError {
         /// Resource field path with invalid value
@@ -317,45 +436,7 @@ pub mod resource {
         pub kinds: Vec<ValidationErrorKind>,
     }
 
-    impl ValidationFieldError {
-        pub fn from_field<T>(value: String, kinds: Vec<ValidationErrorKind>, path: String) -> Self
-        where
-            T: ResourceID,
-        {
-            Self {
-                kinds,
-                path,
-                type_id: T::resource_id().into(),
-                value,
-            }
-        }
-
-        pub fn from_required_field<T>(value: String, path: String) -> Self
-        where
-            T: ResourceID,
-        {
-            Self {
-                kinds: vec![ValidationErrorKind::Required],
-                path,
-                type_id: T::resource_id().into(),
-                value,
-            }
-        }
-
-        pub fn from_unknown_variant_field<T>(value: String, path: String) -> Self
-        where
-            T: ResourceID,
-        {
-            Self {
-                kinds: vec![ValidationErrorKind::UnknownVariant],
-                path,
-                type_id: T::resource_id().into(),
-                value,
-            }
-        }
-    }
-
-    #[derive(Debug, Display, Clone, Error)]
+    #[derive(Debug, Display, Clone, Error, PartialEq, Eq, Hash, Serialize, Deserialize)]
     #[display(fmt = "Conflicting resource {resource_type} of id {resource_id}")]
     pub struct ConflictError<R> {
         /// Resource id

@@ -12,7 +12,6 @@ path = "src/main.rs"
 
 [features]
 default = []
-connect_db_on_start = []
 
 [dependencies]
 salvo = { version = "0.37.0", features = ["logging"] }

@@ -34,8 +34,9 @@ impl From<&pg_tokio::Row> for UserState {
             username: row.get("username"),
             password_hash: row.get("password_hash"),
             image_url: row.get::<&str, Option<&str>>("image_url").map(|s| {
-                s.parse()
-                    .expect("user table to have image_url of type TEXT with valid url")
+                s.parse().expect(
+                    r#"Expect "user" table to have "image_url" column of type TEXT with valid url"#,
+                )
             }),
             bio: row.get("bio"),
         }
