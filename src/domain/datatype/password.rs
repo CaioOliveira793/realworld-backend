@@ -74,7 +74,8 @@ impl From<argon2::Algorithm> for PasswordHashAlgorithm {
 
 impl<'a> From<&'a PasswordHashAlgorithm> for password_hash::Ident<'a> {
     fn from(algo: &'a PasswordHashAlgorithm) -> Self {
-        Self::new(algo.as_str()).expect(&format!("Expect {algo:?} to have a valid symbolic name"))
+        Self::new(algo.as_str())
+            .expect("Expect PasswordHashAlgorithm to have a valid symbolic name")
     }
 }
 
@@ -164,7 +165,7 @@ impl FromStr for PasswordHash {
 
         Ok(Self {
             algorithm: hash.algorithm.try_into()?,
-            version: hash.version.into(),
+            version: hash.version,
             params: hash.params,
             salt: hash.salt.map(|salt| {
                 password_hash::SaltString::new(salt.as_str()).expect("Expected a valid Salt")

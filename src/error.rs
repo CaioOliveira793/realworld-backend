@@ -83,131 +83,69 @@ pub mod app {
         security::{AuthenticationError, ForbiddenError, UnauthorizedError},
     };
 
-    // TODO: rename to ApplicationError
     #[derive(Debug, Display, Serialize)]
-    pub enum OperationErrorKind<R> {
+    pub enum ApplicationError<R> {
         Authentication(AuthenticationError),
         Unauthorized(UnauthorizedError),
         Forbidden(ForbiddenError),
         Validation(ValidationError<R>),
         Conflict(ConflictError<R>),
         // Domain errors
-        // InvalidOperation() -> 422 Unprocessable Entity
+        // Operation(OperationError) -> 422 Unprocessable Entity
         Persistence(PersistenceError),
     }
 
-    impl<R: std::error::Error> std::error::Error for OperationErrorKind<R> {}
+    impl<R: std::error::Error> std::error::Error for ApplicationError<R> {}
 
-    impl<R> From<AuthenticationError> for OperationErrorKind<R> {
+    impl<R> From<AuthenticationError> for ApplicationError<R> {
         fn from(err: AuthenticationError) -> Self {
             Self::Authentication(err)
         }
     }
 
-    impl<R> From<UnauthorizedError> for OperationErrorKind<R> {
+    impl<R> From<UnauthorizedError> for ApplicationError<R> {
         fn from(err: UnauthorizedError) -> Self {
             Self::Unauthorized(err)
         }
     }
 
-    impl<R> From<ForbiddenError> for OperationErrorKind<R> {
+    impl<R> From<ForbiddenError> for ApplicationError<R> {
         fn from(err: ForbiddenError) -> Self {
             Self::Forbidden(err)
         }
     }
 
-    impl<R> From<ValidationError<R>> for OperationErrorKind<R> {
+    impl<R> From<ValidationError<R>> for ApplicationError<R> {
         fn from(err: ValidationError<R>) -> Self {
             Self::Validation(err)
         }
     }
 
-    impl<R> From<ConflictError<R>> for OperationErrorKind<R> {
+    impl<R> From<ConflictError<R>> for ApplicationError<R> {
         fn from(err: ConflictError<R>) -> Self {
             Self::Conflict(err)
         }
     }
 
-    impl<R> From<PersistenceError> for OperationErrorKind<R> {
+    impl<R> From<PersistenceError> for ApplicationError<R> {
         fn from(err: PersistenceError) -> Self {
             Self::Persistence(err)
         }
     }
 
-    // TODO: remove
-    #[derive(Debug, Display, Serialize)]
-    pub struct OperationError<R> {
-        pub(super) details: OperationErrorKind<R>,
-    }
-
-    impl<R> OperationError<R> {
-        pub fn new(kind: OperationErrorKind<R>) -> Self {
-            Self { details: kind }
-        }
-    }
-
-    impl<R: Serialize + Send> Piece for OperationError<R> {
+    impl<R: Serialize + Send> Piece for ApplicationError<R> {
         fn render(self, res: &mut salvo::Response) {
-            let status = match &self.details {
-                OperationErrorKind::Persistence(_) => StatusError::service_unavailable(),
-                OperationErrorKind::Validation(_) => StatusError::bad_request(),
-                OperationErrorKind::Authentication(_) | OperationErrorKind::Unauthorized(_) => {
+            let status = match &self {
+                ApplicationError::Persistence(_) => StatusError::service_unavailable(),
+                ApplicationError::Validation(_) => StatusError::bad_request(),
+                ApplicationError::Authentication(_) | ApplicationError::Unauthorized(_) => {
                     StatusError::unauthorized()
                 }
-                OperationErrorKind::Forbidden(_) => StatusError::forbidden(),
-                OperationErrorKind::Conflict(_) => StatusError::conflict(),
+                ApplicationError::Forbidden(_) => StatusError::forbidden(),
+                ApplicationError::Conflict(_) => StatusError::conflict(),
             };
             res.render(Json(ErrorResponse::from_status_error(&status, self)));
             res.set_status_error(status);
-        }
-    }
-
-    impl<R> From<OperationErrorKind<R>> for OperationError<R> {
-        fn from(kind: OperationErrorKind<R>) -> Self {
-            match &kind {
-                OperationErrorKind::Authentication(_) => Self::new(kind),
-                OperationErrorKind::Unauthorized(_) => Self::new(kind),
-                OperationErrorKind::Forbidden(_) => Self::new(kind),
-                OperationErrorKind::Conflict(_) => Self::new(kind),
-                OperationErrorKind::Validation(_) => Self::new(kind),
-                OperationErrorKind::Persistence(_) => Self::new(kind),
-            }
-        }
-    }
-
-    impl<R> From<AuthenticationError> for OperationError<R> {
-        fn from(err: AuthenticationError) -> Self {
-            OperationErrorKind::from(err).into()
-        }
-    }
-
-    impl<R> From<UnauthorizedError> for OperationError<R> {
-        fn from(err: UnauthorizedError) -> Self {
-            OperationErrorKind::from(err).into()
-        }
-    }
-
-    impl<R> From<ForbiddenError> for OperationError<R> {
-        fn from(err: ForbiddenError) -> Self {
-            OperationErrorKind::from(err).into()
-        }
-    }
-
-    impl<R> From<ValidationError<R>> for OperationError<R> {
-        fn from(err: ValidationError<R>) -> Self {
-            OperationErrorKind::from(err).into()
-        }
-    }
-
-    impl<R> From<ConflictError<R>> for OperationError<R> {
-        fn from(err: ConflictError<R>) -> Self {
-            OperationErrorKind::from(err).into()
-        }
-    }
-
-    impl<R> From<PersistenceError> for OperationError<R> {
-        fn from(err: PersistenceError) -> Self {
-            OperationErrorKind::from(err).into()
         }
     }
 }
@@ -422,9 +360,22 @@ pub mod resource {
         /// Resource value
         pub resource: R,
         /// Name of the resource
-        pub resource_type: String,
+        pub resource_type: &'static str,
         /// Invalid resource fields
         pub fields: Vec<ValidationFieldError>,
+    }
+
+    impl<R> ValidationError<R> {
+        pub fn from_resource(resource: R, fields: Vec<ValidationFieldError>) -> Self
+        where
+            R: ResourceID,
+        {
+            Self {
+                resource,
+                resource_type: R::resource_id().into(),
+                fields,
+            }
+        }
     }
 
     impl<R> std::fmt::Display for ValidationError<R> {
@@ -444,7 +395,7 @@ pub mod resource {
         /// Displayed invalid value
         pub value: String,
         /// Value type id
-        pub type_id: String,
+        pub type_id: &'static str,
         /// Kinds of validation errors
         pub kinds: Vec<ValidationErrorKind>,
     }
@@ -467,7 +418,7 @@ pub mod resource {
         }
 
         pub fn new(
-            type_id: String,
+            type_id: &'static str,
             value: String,
             path: String,
             kinds: Vec<ValidationErrorKind>,
@@ -578,7 +529,10 @@ pub mod http {
         pub fn from_status_error(status: &StatusError, err: T) -> Self {
             Self {
                 title: status.name.clone(),
-                message: status.summary.clone().unwrap_or(status.name.clone()),
+                message: status
+                    .summary
+                    .clone()
+                    .unwrap_or_else(|| status.name.clone()),
                 error: err,
             }
         }

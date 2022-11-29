@@ -6,7 +6,7 @@ pub mod iam {
         base::ResourceID,
         domain::{entity::iam::User, service::PasswordHashService},
         error::{
-            app::OperationError,
+            app::ApplicationError,
             resource::{ValidationError, ValidationErrorKind, ValidationFieldError},
         },
         infra::database::repository,
@@ -18,10 +18,10 @@ pub mod iam {
         pub async fn create_user<'dto>(
             pool: &PgPool,
             dto: &CreateUserDto<'dto>,
-        ) -> Result<(), OperationError<CreateUserDto<'dto>>> {
+        ) -> Result<(), ApplicationError<CreateUserDto<'dto>>> {
             let mut errors = Vec::new();
 
-            let emails = repository::email_exists(&pool, [&dto.email.into()]).await?;
+            let emails = repository::email_exists(pool, [&dto.email.into()]).await?;
             if !emails.is_empty() {
                 errors.push(ValidationFieldError::new(
                     "base::email".into(),
@@ -31,7 +31,7 @@ pub mod iam {
                 ));
             }
 
-            let usernames = repository::username_exists(&pool, [&dto.username.into()]).await?;
+            let usernames = repository::username_exists(pool, [&dto.username.into()]).await?;
             if !usernames.is_empty() {
                 errors.push(ValidationFieldError::new(
                     "base::username".into(),
@@ -42,14 +42,7 @@ pub mod iam {
             }
 
             if !errors.is_empty() {
-                return Err(OperationError::new(
-                    ValidationError {
-                        resource: dto.clone(),
-                        resource_type: CreateUserDto::resource_id().into(),
-                        fields: errors,
-                    }
-                    .into(),
-                ));
+                return Err(ValidationError::from_resource(dto.clone(), errors).into());
             }
 
             Ok(())
@@ -60,27 +53,23 @@ pub mod iam {
         pool: &PgPool,
         hash_service: &HS,
         dto: CreateUserDto<'dto>,
-    ) -> Result<UserResponse, OperationError<CreateUserDto<'dto>>> {
+    ) -> Result<UserResponse, ApplicationError<CreateUserDto<'dto>>> {
         validation::create_user(pool, &dto).await?;
 
         let password_hash = hash_service.hash_password(dto.password).map_err(|_| {
-            OperationError::new(
-                ValidationError {
-                    resource: dto.clone(),
-                    resource_type: CreateUserDto::resource_id().into(),
-                    fields: vec![ValidationFieldError::new(
-                        "base::password".into(),
-                        dto.password.into(),
-                        "/password".into(),
-                        vec![ValidationErrorKind::Invalid],
-                    )],
-                }
-                .into(),
+            ValidationError::from_resource(
+                dto.clone(),
+                vec![ValidationFieldError::new(
+                    "base::password".into(),
+                    dto.password.into(),
+                    "/password".into(),
+                    vec![ValidationErrorKind::Invalid],
+                )],
             )
         })?;
         let user = User::new(dto.email.into(), dto.username.into(), password_hash);
 
-        repository::insert_user(&pool, [&user]).await?;
+        repository::insert_user(pool, [&user]).await?;
 
         Ok(user.into())
     }
