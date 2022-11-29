@@ -7,6 +7,7 @@ pub mod handler {
 
     use crate::{
         app::{resource::iam::CreateUserDto, use_case},
+        domain::service::Argon2HashService,
         error::http::BadRequest,
     };
 
@@ -24,11 +25,12 @@ pub mod handler {
 
     pub struct CreateUserHandler {
         pool: PgPool,
+        hash_service: Argon2HashService,
     }
 
     impl CreateUserHandler {
-        pub fn new(pool: PgPool) -> Self {
-            Self { pool }
+        pub fn new(pool: PgPool, hash_service: Argon2HashService) -> Self {
+            Self { pool, hash_service }
         }
     }
 
@@ -44,7 +46,7 @@ pub mod handler {
             let result: Result<CreateUserDto, _> = req.parse_body().await.map_err(BadRequest::from);
             let dto = map_res_err!(result, res);
 
-            let result = use_case::iam::create_user(&self.pool, dto).await;
+            let result = use_case::iam::create_user(&self.pool, &self.hash_service, dto).await;
             let user = map_res_err!(result, res);
 
             res.render(Json(user));
@@ -55,21 +57,17 @@ pub mod handler {
 
 pub mod query {}
 
-pub mod validation {}
-
 pub mod router {
     use salvo::{logging::Logger, Router};
     use sqlx::PgPool;
 
     use super::handler::*;
+    use crate::domain::service::Argon2HashService;
 
-    pub fn app(pool: PgPool) -> Router {
-        Router::new()
-            .hoop(Logger)
-            .push(Router::with_path("api").push(user(pool)))
-    }
-
-    pub fn user(pool: PgPool) -> Router {
-        Router::with_path("user").post(CreateUserHandler::new(pool))
+    pub fn app(pool: PgPool, hash_service: Argon2HashService) -> Router {
+        Router::new().hoop(Logger).push(
+            Router::with_path("api")
+                .push(Router::with_path("user").post(CreateUserHandler::new(pool, hash_service))),
+        )
     }
 }

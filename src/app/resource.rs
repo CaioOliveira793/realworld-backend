@@ -17,6 +17,8 @@ pub mod iam {
     use url::Url;
     use uuid::Uuid;
 
+    use crate::base::ResourceID;
+
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct CreateUserDto<'a> {
         pub username: &'a str,
@@ -24,16 +26,28 @@ pub mod iam {
         pub password: &'a str,
     }
 
-    #[derive(Debug, Clone, Serialize, Deserialize)]
-    pub struct UpdateUserDto<'a> {
-        bio: &'a str,
-        image_url: &'a str,
+    impl ResourceID for CreateUserDto<'_> {
+        fn resource_id() -> &'static str {
+            "iam::user::CreateUser"
+        }
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
-    pub struct AuthenticateUserDto<'a> {
-        email: &'a str,
-        password: &'a str,
+    pub struct UpdateUserDto<'a> {
+        pub bio: &'a str,
+        pub image_url: &'a str,
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct UserCredential<'a> {
+        pub email: &'a str,
+        pub password: &'a str,
+    }
+
+    impl ResourceID for UserCredential<'_> {
+        fn resource_id() -> &'static str {
+            "iam::auth::UserCredential"
+        }
     }
 
     resource_response! {

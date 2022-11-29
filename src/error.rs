@@ -74,22 +74,47 @@ impl Piece for UnknownError {
 pub mod app {
     use derive_more::Display;
     use salvo::{prelude::StatusError, writer::Json, Piece};
-    use serde::{Deserialize, Serialize};
+    use serde::Serialize;
 
     use super::{
         http::ErrorResponse,
         persistence::PersistenceError,
         resource::{ConflictError, ValidationError},
+        security::{AuthenticationError, ForbiddenError, UnauthorizedError},
     };
 
+    // TODO: rename to ApplicationError
     #[derive(Debug, Display, Serialize)]
     pub enum OperationErrorKind<R> {
+        Authentication(AuthenticationError),
+        Unauthorized(UnauthorizedError),
+        Forbidden(ForbiddenError),
         Validation(ValidationError<R>),
         Conflict(ConflictError<R>),
+        // Domain errors
+        // InvalidOperation() -> 422 Unprocessable Entity
         Persistence(PersistenceError),
     }
 
     impl<R: std::error::Error> std::error::Error for OperationErrorKind<R> {}
+
+    impl<R> From<AuthenticationError> for OperationErrorKind<R> {
+        fn from(err: AuthenticationError) -> Self {
+            Self::Authentication(err)
+        }
+    }
+
+    impl<R> From<UnauthorizedError> for OperationErrorKind<R> {
+        fn from(err: UnauthorizedError) -> Self {
+            Self::Unauthorized(err)
+        }
+    }
+
+    impl<R> From<ForbiddenError> for OperationErrorKind<R> {
+        fn from(err: ForbiddenError) -> Self {
+            Self::Forbidden(err)
+        }
+    }
 
     impl<R> From<ValidationError<R>> for OperationErrorKind<R> {
         fn from(err: ValidationError<R>) -> Self {
@@ -109,76 +134,62 @@ pub mod app {
         }
     }
 
-    #[derive(Debug, Display, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-    pub enum OperationLayer {
-        Domain,
-        App,
-        Infra,
-    }
-
+    // TODO: remove
     #[derive(Debug, Display, Serialize)]
-    #[display(fmt = "OperationError in layer {layer} of {context} context. {details}")]
     pub struct OperationError<R> {
-        pub(super) context: &'static str,
         pub(super) details: OperationErrorKind<R>,
-        pub(super) layer: OperationLayer,
     }
 
     impl<R> OperationError<R> {
-        pub fn domain(context: &'static str, kind: OperationErrorKind<R>) -> Self {
-            Self {
-                context,
-                layer: OperationLayer::Domain,
-                details: kind,
-            }
-        }
-
-        pub fn app(context: &'static str, kind: OperationErrorKind<R>) -> Self {
-            Self {
-                context,
-                layer: OperationLayer::App,
-                details: kind,
-            }
-        }
-
-        pub fn infra(context: &'static str, kind: OperationErrorKind<R>) -> Self {
-            Self {
-                context,
-                layer: OperationLayer::Infra,
-                details: kind,
-            }
+        pub fn new(kind: OperationErrorKind<R>) -> Self {
+            Self { details: kind }
         }
     }
 
     impl<R: Serialize + Send> Piece for OperationError<R> {
         fn render(self, res: &mut salvo::Response) {
-            match &self.details {
-                OperationErrorKind::Persistence(_) => {
-                    let status = StatusError::service_unavailable();
-                    res.render(Json(ErrorResponse::from_status_error(&status, ())));
-                    res.set_status_error(status);
+            let status = match &self.details {
+                OperationErrorKind::Persistence(_) => StatusError::service_unavailable(),
+                OperationErrorKind::Validation(_) => StatusError::bad_request(),
+                OperationErrorKind::Authentication(_) | OperationErrorKind::Unauthorized(_) => {
+                    StatusError::unauthorized()
                 }
-                OperationErrorKind::Validation(_) => {
-                    let status = StatusError::bad_request();
-                    res.render(Json(ErrorResponse::from_status_error(&status, self)));
-                    res.set_status_error(status);
-                }
-                OperationErrorKind::Conflict(_) => {
-                    let status = StatusError::conflict();
-                    res.render(Json(ErrorResponse::from_status_error(&status, self)));
-                    res.set_status_error(status);
-                }
-            }
+                OperationErrorKind::Forbidden(_) => StatusError::forbidden(),
+                OperationErrorKind::Conflict(_) => StatusError::conflict(),
+            };
+            res.render(Json(ErrorResponse::from_status_error(&status, self)));
+            res.set_status_error(status);
         }
     }
 
     impl<R> From<OperationErrorKind<R>> for OperationError<R> {
         fn from(kind: OperationErrorKind<R>) -> Self {
             match &kind {
-                OperationErrorKind::Conflict(_) => Self::app("unknown", kind),
-                OperationErrorKind::Validation(_) => Self::app("unknown", kind),
-                OperationErrorKind::Persistence(_) => Self::infra("unknown", kind),
+                OperationErrorKind::Authentication(_) => Self::new(kind),
+                OperationErrorKind::Unauthorized(_) => Self::new(kind),
+                OperationErrorKind::Forbidden(_) => Self::new(kind),
+                OperationErrorKind::Conflict(_) => Self::new(kind),
+                OperationErrorKind::Validation(_) => Self::new(kind),
+                OperationErrorKind::Persistence(_) => Self::new(kind),
             }
+        }
+    }
+
+    impl<R> From<AuthenticationError> for OperationError<R> {
+        fn from(err: AuthenticationError) -> Self {
+            OperationErrorKind::from(err).into()
+        }
+    }
+
+    impl<R> From<UnauthorizedError> for OperationError<R> {
+        fn from(err: UnauthorizedError) -> Self {
+            OperationErrorKind::from(err).into()
+        }
+    }
+
+    impl<R> From<ForbiddenError> for OperationError<R> {
+        fn from(err: ForbiddenError) -> Self {
+            OperationErrorKind::from(err).into()
         }
     }
 
@@ -340,6 +351,8 @@ pub mod resource {
     use serde::{Deserialize, Serialize};
     use uuid::Uuid;
 
+    use crate::base::ResourceID;
+
     #[derive(Debug, Display, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
     pub enum ValidationErrorKind {
         /// Unexpected properties.
@@ -436,6 +449,38 @@ pub mod resource {
         pub kinds: Vec<ValidationErrorKind>,
     }
 
+    impl ValidationFieldError {
+        pub fn from_resource<T>(
+            value: String,
+            path: String,
+            kinds: Vec<ValidationErrorKind>,
+        ) -> Self
+        where
+            T: ResourceID,
+        {
+            Self {
+                path,
+                type_id: T::resource_id().into(),
+                value,
+                kinds,
+            }
+        }
+
+        pub fn new(
+            type_id: String,
+            value: String,
+            path: String,
+            kinds: Vec<ValidationErrorKind>,
+        ) -> Self {
+            Self {
+                path,
+                type_id,
+                value,
+                kinds,
+            }
+        }
+    }
+
     #[derive(Debug, Display, Clone, Error, PartialEq, Eq, Hash, Serialize, Deserialize)]
     #[display(fmt = "Conflicting resource {resource_type} of id {resource_id}")]
     pub struct ConflictError<R> {
@@ -447,6 +492,67 @@ pub mod resource {
         pub stable: R,
         /// New conflicting resource
         pub conflict: Option<R>,
+    }
+}
+
+pub mod security {
+    use derive_more::Display;
+    use serde::Serialize;
+
+    use crate::domain::datatype::password::PasswordHashError;
+
+    /// Unauthorized access to a resource.
+    ///
+    /// The user is unauthorized to access the resource.
+    #[derive(Debug, Display, Serialize)]
+    pub enum UnauthorizedError {
+        /// Authentication token is not present.
+        #[display(fmt = "token_not_present")]
+        TokenNotPresent,
+
+        /// Authentication token is malformatted.
+        ///
+        /// The token is no formated as the required authentication scheme
+        #[display(fmt = "malformatted_token")]
+        MalformattedToken,
+
+        /// Authentication token is invalid.
+        #[display(fmt = "invalid_token")]
+        InvalidToken,
+    }
+
+    #[derive(Debug, Display, Serialize)]
+    pub enum AuthenticationError {
+        /// Attempt to authenticate with invalid credentials.
+        #[display(fmt = "invalid_credential")]
+        InvalidCredential,
+    }
+
+    #[derive(Debug, Display, Serialize)]
+    pub enum ForbiddenError {
+        /// Access denied.
+        ///
+        /// The user is authenticated, however does not have access to the requested resource.
+        #[display(fmt = "access_denied")]
+        AccessDenied,
+
+        /// Forbidden access due invalid credential.
+        ///
+        /// Authentication credentials is required to grant access, but invalid credentials was send.
+        #[display(fmt = "invalid_credential")]
+        InvalidCredential,
+    }
+
+    impl From<PasswordHashError> for AuthenticationError {
+        fn from(_: PasswordHashError) -> Self {
+            Self::InvalidCredential
+        }
+    }
+
+    impl From<PasswordHashError> for ForbiddenError {
+        fn from(_: PasswordHashError) -> Self {
+            Self::InvalidCredential
+        }
     }
 }
 

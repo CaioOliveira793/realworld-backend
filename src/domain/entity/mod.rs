@@ -10,15 +10,6 @@ pub trait Entity {
     fn updated(&self) -> Option<DateTime<Utc>>;
 }
 
-#[derive(Debug, Clone)]
-pub struct EntityCtl<State> {
-    id: Uuid,
-    created: DateTime<Utc>,
-    updated: Option<DateTime<Utc>>,
-    version: u32,
-    state: State,
-}
-
 /// Data used to restore a entity
 #[derive(Debug, Clone)]
 pub struct EntityData {
@@ -28,44 +19,54 @@ pub struct EntityData {
     pub(in crate::domain) version: u32,
 }
 
-impl<State> Entity for EntityCtl<State> {
-    fn ident(&self) -> Uuid {
-        self.id
-    }
-
-    fn version(&self) -> u32 {
-        self.version
-    }
-
-    fn created(&self) -> DateTime<Utc> {
-        self.created
-    }
-
-    fn updated(&self) -> Option<DateTime<Utc>> {
-        self.updated
-    }
-}
-
-impl<State> EntityCtl<State> {
-    pub fn restore(ent: EntityData, state: State) -> Self {
-        Self {
-            state,
-            id: ent.id,
-            created: ent.created,
-            updated: ent.updated,
-            version: ent.version,
-        }
-    }
-
-    pub fn new(state: State) -> Self {
+impl EntityData {
+    pub fn new() -> Self {
         Self {
             id: Uuid::new_v4(),
             created: Utc::now(),
             updated: None,
             version: 1,
-            state,
         }
     }
+}
+
+macro_rules! transform_helper {
+    ($state_ty:ty) => {
+        pub(in crate::domain) fn restore(
+            data: crate::domain::entity::EntityData,
+            state: $state_ty,
+        ) -> Self {
+            Self { state, data }
+        }
+
+        pub(in crate::domain) fn unmount_state(
+            self,
+        ) -> (crate::domain::entity::EntityData, $state_ty) {
+            (self.data, self.state)
+        }
+    };
+}
+
+macro_rules! impl_entity {
+    ($entity_ty:ty) => {
+        impl crate::domain::entity::Entity for $entity_ty {
+            fn ident(&self) -> uuid::Uuid {
+                self.data.id
+            }
+
+            fn version(&self) -> u32 {
+                self.data.version
+            }
+
+            fn created(&self) -> chrono::DateTime<chrono::Utc> {
+                self.data.created
+            }
+
+            fn updated(&self) -> Option<chrono::DateTime<chrono::Utc>> {
+                self.data.updated
+            }
+        }
+    };
 }
 
 macro_rules! state_ref {
@@ -80,4 +81,6 @@ macro_rules! state_ref {
     };
 }
 
+pub(self) use impl_entity;
 pub(self) use state_ref;
+pub(self) use transform_helper;

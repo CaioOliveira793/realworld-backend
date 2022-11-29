@@ -1,4 +1,8 @@
+pub mod password;
+
 use crate::error::resource::ValidationFieldError;
+
+// ### JsonPointer
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct JsonPointer {

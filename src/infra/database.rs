@@ -39,7 +39,7 @@ pub mod repository {
     use std::collections::HashSet;
 
     use futures::TryStreamExt;
-    use sqlx::{PgPool, QueryBuilder, Row};
+    use sqlx::{FromRow, PgPool, QueryBuilder, Row};
 
     use super::sql;
     use crate::{
@@ -62,7 +62,7 @@ pub mod repository {
             qb.push_bind(user.version() as i64);
             qb.push_bind(user.username());
             qb.push_bind(user.email());
-            qb.push_bind(user.password_hash());
+            qb.push_bind(user.password_hash().to_string());
             qb.push_bind(user.bio());
             qb.push_bind(user.image_url().clone().map(|url| url.to_string()));
         });
@@ -72,44 +72,51 @@ pub mod repository {
         Ok(())
     }
 
-    pub async fn find_user<I>(
+    pub async fn find_user_by_email(
         pool: &PgPool,
-        username: String,
-    ) -> Result<Option<User>, PersistenceError>
-    where
-        I: IntoIterator<Item = User>,
-    {
-        let mut rows = sqlx::query(concat!(
+        email: String,
+    ) -> Result<Option<User>, PersistenceError> {
+        let row = sqlx::query(concat!(
             "SELECT user.id, user.username, user.email, user.password_hash, ",
-            "user.bio, user.image_url FROM iam.user WHERE user.username = $1",
+            "user.bio, user.image_url FROM iam.user WHERE user.email = $1",
         ))
-        .bind(username)
-        .fetch(pool);
+        .bind(email)
+        .fetch_optional(pool)
+        .await?;
 
-        while let Some(_row) = rows.try_next().await? {
-            todo!("impl FromRow for User entity")
+        if let Some(row) = row {
+            return Ok(Some(User::from_row(&row)?));
         }
 
         Ok(None)
     }
 
-    pub async fn usernames_exists<'u, I>(
-        pool: &PgPool,
-        usernames: I,
-    ) -> Result<HashSet<String>, PersistenceError>
-    where
-        I: IntoIterator<Item = &'u String>,
-    {
-        let mut qb = QueryBuilder::new("SELECT username FROM iam.user WHERE username IN ");
-        sql::push_list(&mut qb, usernames);
+    macro_rules! make_fn_value_exists {
+        ($fn_name:ident, $type:ty, $table:literal, $column:literal) => {
+            pub async fn $fn_name<'e, I>(
+                pool: &PgPool,
+                values: I,
+            ) -> Result<HashSet<$type>, PersistenceError>
+            where
+                I: IntoIterator<Item = &'e $type>,
+            {
+                let mut qb = QueryBuilder::new(concat!(
+                    "SELECT ", $column, " FROM ", $table, " WHERE ", $column, " IN "
+                ));
+                sql::push_list(&mut qb, values);
 
-        let mut rows = qb.build().fetch(pool);
+                let mut rows = qb.build().fetch(pool);
 
-        let mut set = HashSet::new();
-        while let Some(row) = rows.try_next().await? {
-            set.insert(row.get(0));
-        }
+                let mut set = HashSet::new();
+                while let Some(row) = rows.try_next().await? {
+                    set.insert(row.get(0));
+                }
 
-        Ok(set)
+                Ok(set)
+            }
+        };
     }
+
+    make_fn_value_exists!(email_exists, String, "iam.user", "email");
+    make_fn_value_exists!(username_exists, String, "iam.user", "username");
 }

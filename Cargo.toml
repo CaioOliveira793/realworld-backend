@@ -27,10 +27,13 @@ futures = { version = "0.3.25" }
 
 rustls = "0.20.6"
 webpki-roots = "0.22.4"
+argon2 = { version = "0.4.1" }
+rand_core = { version = "0.6", features = ["std"] }
 
 uuid = { version = "1.2.1", features = ["v4", "serde"] }
 url = { version = "2.3.1", features = ["serde"] }
 chrono = { version = "0.4.22", features = ["serde", "clock"] }
+password-hash = { version = "0.4.2", default-features = false, features = ["std"] }
 
 tracing = { version = "0.1.37", features = ["log"] }
 tracing-subscriber = "0.3.16"
