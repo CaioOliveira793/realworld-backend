@@ -18,9 +18,6 @@ salvo = { version = "0.37.0", features = ["logging"] }
 tokio = { version = "1.20.1", features = ["macros", "rt-multi-thread", "signal", "net", "time"] }
 serde = { version = "1.0.143", features = ["derive"] }
 
-pg-tokio = { package = "tokio-postgres", version = "0.7.7", features = ["array-impls", "with-chrono-0_4", "with-uuid-1"] }
-pg-pool = { package = "deadpool-postgres", version = "0.10.2" }
-
 sqlx = { version = "0.6.2", features = ["runtime-tokio-rustls", "tls", "postgres", "uuid", "chrono"] }
 
 futures = { version = "0.3.25" }

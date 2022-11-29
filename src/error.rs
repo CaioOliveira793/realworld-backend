@@ -45,18 +45,6 @@ impl<'a> From<&'a str> for UnknownError {
     }
 }
 
-impl From<pg_tokio::Error> for UnknownError {
-    fn from(err: pg_tokio::Error) -> Self {
-        UnknownError(err.into())
-    }
-}
-
-impl From<pg_pool::PoolError> for UnknownError {
-    fn from(err: pg_pool::PoolError) -> Self {
-        UnknownError(err.into())
-    }
-}
-
 impl From<sqlx::error::Error> for UnknownError {
     fn from(err: sqlx::error::Error) -> Self {
         Self::new(err.into())
@@ -240,45 +228,6 @@ pub mod persistence {
                 }
                 SqlxError::Migrate(_) => Self::DataMigration,
                 _ => PersistenceError::Unknown(err.into()),
-            }
-        }
-    }
-
-    impl From<pg_tokio::Error> for PersistenceError {
-        fn from(err: pg_tokio::Error) -> Self {
-            if let Some(db_err) = err.as_db_error() {
-                tracing::error!("DatabaseError {db_err:?}");
-                return PersistenceError::Database(Some(db_err.code().code().into()));
-            }
-
-            tracing::error!("UnknownDatabaseError {err:?}");
-            PersistenceError::Unknown(err.into())
-        }
-    }
-
-    impl From<pg_pool::PoolError> for PersistenceError {
-        fn from(err: pg_pool::PoolError) -> Self {
-            match err {
-                pg_pool::PoolError::Backend(back) => {
-                    if let Some(db) = back.as_db_error() {
-                        tracing::error!("Error retrieving database connection from pool {db:?}");
-                        return Self::Database(Some(db.code().code().into()));
-                    }
-
-                    tracing::error!("Error retrieving database connection from pool {back:?}");
-                    Self::Connection(DispatchError::Unknown(back.into()))
-                }
-                pg_pool::PoolError::Timeout(_) => {
-                    tracing::error!("TimeoutError retrieving database connection from pool");
-                    Self::Connection(DispatchError::Timeout(None))
-                }
-                pg_pool::PoolError::NoRuntimeSpecified => {
-                    panic!("Error retrieving database connection from pool: No runtime specified");
-                }
-                err => {
-                    tracing::error!("Error retrieving database connection from pool {err:?}");
-                    Self::Connection(DispatchError::Unknown(err.into()))
-                }
             }
         }
     }

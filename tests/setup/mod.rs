@@ -1,5 +1,3 @@
-use pg_pool::{Config, ManagerConfig, Pool, RecyclingMethod, Runtime, SslMode};
-use pg_tokio::NoTls;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
     Client,
@@ -8,7 +6,7 @@ use url::Url;
 
 use std::time::Duration;
 
-pub async fn setup_test() -> (Client, Url, Pool) {
+pub async fn setup_test() -> (Client, Url, sqlx::PgPool) {
     dotenv::dotenv().unwrap();
     (create_client(), service_url(), setup_database().await)
 }
@@ -21,42 +19,34 @@ fn service_url() -> Url {
     Url::parse(format!("http://localhost:{port}").as_str()).unwrap()
 }
 
-async fn setup_database() -> pg_pool::Pool {
-    let host = std::env::var("DATABASE_HOST").unwrap();
-    let db_name = std::env::var("DATABASE_NAME").unwrap();
-    let user = std::env::var("DATABASE_USER").unwrap();
-    let password = std::env::var("DATABASE_PASSWORD").unwrap();
-    let port: u16 = std::env::var("DATABASE_PORT")
+async fn setup_database() -> sqlx::PgPool {
+    let database_host = std::env::var("DATABASE_HOST").unwrap();
+    let database_name = std::env::var("DATABASE_NAME").unwrap();
+    let database_user = std::env::var("DATABASE_USER").unwrap();
+    let database_password = std::env::var("DATABASE_PASSWORD").unwrap();
+    let database_port: u16 = std::env::var("DATABASE_PORT")
         .unwrap()
         .parse()
         .expect("Invalid DATABASE_PORT");
-    let mut cfg = Config::new();
-    cfg.host = Some(host);
-    cfg.dbname = Some(db_name);
-    cfg.port = Some(port);
-    cfg.user = Some(user);
-    cfg.password = Some(password);
-    cfg.manager = Some(ManagerConfig {
-        recycling_method: RecyclingMethod::Fast,
-    });
-    cfg.ssl_mode = Some(SslMode::Prefer);
 
-    let pool = cfg
-        .create_pool(Some(Runtime::Tokio1), NoTls)
-        .expect("should create a connection pool");
+    let database_url = format!("postgres://{database_user}:{database_password}@{database_host}:{database_port}/{database_name}");
+    let pool = sqlx::postgres::PgPoolOptions::new()
+        .min_connections(1)
+        .max_connections(5)
+        .acquire_timeout(Duration::from_millis(1000))
+        .idle_timeout(Duration::from_millis(1000 * 30))
+        .max_lifetime(Duration::from_millis(1000 * 10))
+        .connect(&database_url)
+        .await
+        .expect("Expect to create a database pool with a open connection");
 
-    let mut client = pool
-        .get()
-        .await
-        .expect("should retrieve database client from pool");
+    let drop_sttm = sqlx::query("DROP SCHEMA IF EXISTS iam, blog CASCADE");
 
-    let trx = client.transaction().await.unwrap();
-    trx.query("DROP SCHEMA IF EXISTS iam, blog CASCADE", &[])
-        .await
-        .unwrap();
-    trx.batch_execute(include_str!("../../dbschema.sql"))
-        .await
-        .unwrap();
+    let mut trx = pool.begin().await.unwrap();
+    drop_sttm.execute(&mut trx).await.unwrap();
+    for sttm in include_str!("../../dbschema.sql").split(';') {
+        sqlx::query(sttm).execute(&mut trx).await.unwrap();
+    }
     trx.commit().await.unwrap();
 
     pool
