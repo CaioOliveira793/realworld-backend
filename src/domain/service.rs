@@ -40,23 +40,23 @@ impl PasswordHashService for Argon2HashService {
         self.ctx
             .hash_password_into(pwd.as_bytes(), salt.as_bytes(), &mut buf)?;
 
-        let out = password_hash::Output::new(&buf)?;
+        let hash = password_hash::Output::new(&buf)?;
 
-        Ok(PasswordHash {
-            algorithm: Self::ALGORITHM,
-            version: Some(Self::VERSION),
-            params: self.ctx.params().try_into()?,
-            salt: Some(salt),
-            hash: Some(out),
-        })
+        Ok(PasswordHash::new(
+            Self::ALGORITHM,
+            Some(Self::VERSION),
+            self.ctx.params().try_into()?,
+            Some(salt),
+            Some(hash),
+        ))
     }
 
     fn verify_password(&self, pwd: &str, hash: &PasswordHash) -> Result<(), PasswordHashError> {
-        if let (Some(salt), Some(expected_output)) = (&hash.salt, &hash.hash) {
+        if let (Some(salt), Some(expected_output)) = (&hash.salt(), &hash.hash()) {
             let computed_hash = self.ctx.hash_password_customized(
                 pwd.as_bytes(),
-                Some(password_hash::Ident::from(&hash.algorithm)),
-                hash.version,
+                Some(password_hash::Ident::from(hash.algorithm())),
+                hash.version(),
                 Params::try_from(hash)?,
                 salt.as_salt(),
             )?;

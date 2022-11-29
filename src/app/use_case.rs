@@ -3,7 +3,6 @@ pub mod iam {
 
     use crate::{
         app::resource::iam::{CreateUserDto, UserResponse},
-        base::ResourceID,
         domain::{entity::iam::User, service::PasswordHashService},
         error::{
             app::ApplicationError,
@@ -24,7 +23,7 @@ pub mod iam {
             let emails = repository::email_exists(pool, [&dto.email.into()]).await?;
             if !emails.is_empty() {
                 errors.push(ValidationFieldError::new(
-                    "base::email".into(),
+                    "base::email",
                     dto.email.into(),
                     "/email".into(),
                     vec![ValidationErrorKind::AlreadyExists],
@@ -34,7 +33,7 @@ pub mod iam {
             let usernames = repository::username_exists(pool, [&dto.username.into()]).await?;
             if !usernames.is_empty() {
                 errors.push(ValidationFieldError::new(
-                    "base::username".into(),
+                    "base::username",
                     dto.username.into(),
                     "/username".into(),
                     vec![ValidationErrorKind::AlreadyExists],
@@ -60,7 +59,7 @@ pub mod iam {
             ValidationError::from_resource(
                 dto.clone(),
                 vec![ValidationFieldError::new(
-                    "base::password".into(),
+                    "base::password",
                     dto.password.into(),
                     "/password".into(),
                     vec![ValidationErrorKind::Invalid],

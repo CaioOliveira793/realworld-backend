@@ -372,7 +372,7 @@ pub mod resource {
         {
             Self {
                 resource,
-                resource_type: R::resource_id().into(),
+                resource_type: R::resource_id(),
                 fields,
             }
         }
@@ -411,7 +411,7 @@ pub mod resource {
         {
             Self {
                 path,
-                type_id: T::resource_id().into(),
+                type_id: T::resource_id(),
                 value,
                 kinds,
             }
@@ -438,7 +438,7 @@ pub mod resource {
         /// Resource id
         pub resource_id: Uuid,
         /// Name of the resource
-        pub resource_type: String,
+        pub resource_type: &'static str,
         /// Stabe resource already found
         pub stable: R,
         /// New conflicting resource

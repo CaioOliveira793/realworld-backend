@@ -79,6 +79,86 @@ impl<'a> From<&'a PasswordHashAlgorithm> for password_hash::Ident<'a> {
     }
 }
 
+/// Argon2 algorithm version
+#[derive(Debug, Copy, Clone, Eq, PartialEq, PartialOrd, Ord)]
+pub enum Argon2Version {
+    V16 = 16,
+    V19 = 19,
+}
+
+impl ResourceID for Argon2Version {
+    fn resource_id() -> &'static str {
+        "base::argon2_version"
+    }
+}
+
+impl From<Argon2Version> for u32 {
+    fn from(ver: Argon2Version) -> Self {
+        ver as u32
+    }
+}
+
+impl TryFrom<u32> for Argon2Version {
+    type Error = ValidationFieldError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match value {
+            16 => Ok(Self::V16),
+            19 => Ok(Self::V19),
+            _ => Err(Self::Error::from_resource::<Self>(
+                value.to_string(),
+                String::new(),
+                vec![ValidationErrorKind::UnknownVariant],
+            )),
+        }
+    }
+}
+
+/// Argon2 password hash parameters.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Argon2Params {
+    /// Memory size, expressed in kilobytes, between 1 and (2^32)-1.
+    ///
+    /// Value is an integer in decimal (1 to 10 digits).
+    memory_cost: u32,
+
+    /// Number of iterations, between 1 and (2^32)-1.
+    ///
+    /// Value is an integer in decimal (1 to 10 digits).
+    iteration_cost: u32,
+
+    /// Degree of parallelism, between 1 and 255.
+    ///
+    /// Value is an integer in decimal (1 to 3 digits).
+    parallelism: u32,
+}
+
+impl ResourceID for Argon2Params {
+    fn resource_id() -> &'static str {
+        "base::argon2_parameter"
+    }
+}
+
+impl From<Argon2Params> for password_hash::ParamsString {
+    fn from(params: Argon2Params) -> Self {
+        let mut output = password_hash::ParamsString::new();
+        output
+            .add_decimal("m", params.memory_cost)
+            .expect("Expected to add memory (m) parameter to the argon2 ParamString");
+        output
+            .add_decimal("t", params.iteration_cost)
+            .expect("Expected to add iteration cost (t) parameter to the argon2 ParamString");
+        output
+            .add_decimal("p", params.parallelism)
+            .expect("Expected to add parallelism (p) parameter to the argon2 ParamString");
+        output
+    }
+}
+
+pub type PasswordParams = password_hash::ParamsString;
+pub type SaltString = password_hash::SaltString;
+pub type OutputHash = password_hash::Output;
+
 /// Password hash.
 ///
 /// A parsed representation of a PHC string as described in the [PHC string format specification][1].
@@ -116,32 +196,94 @@ pub struct PasswordHash {
     ///
     /// This corresponds to the `<id>` field in a PHC string, a.k.a. the
     /// symbolic name for the function.
-    pub algorithm: PasswordHashAlgorithm,
+    algorithm: PasswordHashAlgorithm,
 
     /// Optional version field.
     ///
     /// This corresponds to the `<version>` field in a PHC string.
-    pub version: Option<u32>,
+    version: Option<u32>,
 
     /// Algorithm-specific parameters.
     ///
     /// This corresponds to the set of `$<param>=<value>(,<param>=<value>)*`
     /// name/value pairs in a PHC string.
-    pub params: password_hash::ParamsString,
+    params: PasswordParams,
 
     /// Salt string for personalizing a password hash output.
     ///
     /// This corresponds to the `<salt>` value in a PHC string.
-    pub salt: Option<password_hash::SaltString>,
+    salt: Option<SaltString>,
 
     /// Password hashing function Output, a.k.a. hash/digest.
     ///
     /// This corresponds to the `<hash>` output in a PHC string.
-    pub hash: Option<password_hash::Output>,
+    hash: Option<OutputHash>,
 }
 
 impl PasswordHash {
     pub const SEPARATOR: char = '$';
+
+    pub fn new(
+        algorithm: PasswordHashAlgorithm,
+        version: Option<u32>,
+        params: PasswordParams,
+        salt: Option<SaltString>,
+        hash: Option<OutputHash>,
+    ) -> Self {
+        Self {
+            algorithm,
+            version,
+            params,
+            salt,
+            hash,
+        }
+    }
+
+    pub fn new_argon2(
+        algorithm: argon2::Algorithm,
+        version: Argon2Version,
+        params: Argon2Params,
+        salt: Option<SaltString>,
+        hash: Option<OutputHash>,
+    ) -> Self {
+        Self {
+            algorithm: algorithm.into(),
+            version: Some(version.into()),
+            params: params.into(),
+            salt,
+            hash,
+        }
+    }
+
+    pub fn new_bcrypt(cost: u32, salt: Option<SaltString>, hash: Option<OutputHash>) -> Self {
+        let mut params = password_hash::ParamsString::new();
+        params
+            .add_decimal("cost", cost)
+            .expect("Expected to add cost (c) parameter to the bcrypt ParamString");
+        Self {
+            algorithm: PasswordHashAlgorithm::Bcrypt,
+            version: None,
+            params,
+            salt,
+            hash,
+        }
+    }
+
+    pub fn algorithm(&self) -> &PasswordHashAlgorithm {
+        &self.algorithm
+    }
+
+    pub fn version(&self) -> Option<u32> {
+        self.version
+    }
+
+    pub fn salt(&self) -> &Option<SaltString> {
+        &self.salt
+    }
+
+    pub fn hash(&self) -> &Option<OutputHash> {
+        &self.hash
+    }
 }
 
 impl ResourceID for PasswordHash {
@@ -157,7 +299,7 @@ impl FromStr for PasswordHash {
         let hash =
             password_hash::PasswordHash::parse(s, password_hash::Encoding::B64).map_err(|_| {
                 Self::Err::from_resource::<Self>(
-                    s.into(),
+                    String::new(),
                     String::new(),
                     vec![ValidationErrorKind::Invalid],
                 )
@@ -167,9 +309,9 @@ impl FromStr for PasswordHash {
             algorithm: hash.algorithm.try_into()?,
             version: hash.version,
             params: hash.params,
-            salt: hash.salt.map(|salt| {
-                password_hash::SaltString::new(salt.as_str()).expect("Expected a valid Salt")
-            }),
+            salt: hash
+                .salt
+                .map(|salt| SaltString::new(salt.as_str()).expect("Expected a valid Salt")),
             hash: hash.hash,
         })
     }
@@ -244,6 +386,37 @@ where
 
     fn type_info() -> <DB as sqlx::Database>::TypeInfo {
         <&str as sqlx::Type<DB>>::type_info()
+    }
+}
+
+#[cfg(test)]
+mod password_hash_test {
+    use std::str::FromStr;
+
+    use pretty_assertions::assert_eq;
+
+    use super::PasswordHash;
+
+    #[test]
+    fn parse_and_serialize() {
+        let pwds = [
+            "$2b$c=10$b0tmWkRkdUNuN1ZsbVVSSw$JKBjx7b7p7pb0SGk0bKwAg",
+            "$2b$c=11$UnhIaHlwdDRkQm1QN3dFRA$IhqNdiDUZbYQpWFJHTPYbw",
+            "$argon2i$v=19$m=16,t=3,p=1$cG5nRUQ1VDgxT1FUa296bA$Ju09TJ75fE0J6rSZEEwOGg",
+            "$argon2d$v=19$m=16,t=3,p=1$dXVwdmdFZm1xOU44YWdFZQ$2BRumjvZnUsQZHXPlqqcPA",
+            "$argon2id$v=19$m=16,t=3,p=1$TE1LcnNPbTVEcnNQYTBPUA$2JYnsTwG5Zu17cIWiaAxnA",
+        ];
+
+        for pwd in pwds {
+            let pass_hash =
+                PasswordHash::from_str(pwd).expect("Expect to parse a valid encoded password");
+
+            assert_eq!(
+                pwd,
+                pass_hash.to_string().as_str(),
+                "Expect to display the same as encoded"
+            );
+        }
     }
 }
 

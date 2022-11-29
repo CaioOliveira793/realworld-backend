@@ -70,7 +70,7 @@ fn create_client() -> reqwest::Client {
     let connect_timeout = 1000 * 5; // 5 sec
     let timeout = 1000 * 10; // 10 sec
 
-    let client = reqwest::Client::builder()
+    reqwest::Client::builder()
         .tcp_keepalive(Duration::from_millis(keep_alive))
         .connect_timeout(Duration::from_millis(connect_timeout))
         .timeout(Duration::from_millis(timeout))
@@ -79,6 +79,5 @@ fn create_client() -> reqwest::Client {
         .brotli(true)
         .gzip(true)
         .build()
-        .expect("could not create client");
-    client
+        .expect("Expect to create a http client")
 }
