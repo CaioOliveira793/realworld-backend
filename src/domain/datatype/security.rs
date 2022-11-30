@@ -1,11 +1,12 @@
 use std::str::FromStr;
+use std::time::Duration;
 
 use derive_more::Display;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-use crate::{
-    base::ResourceID,
-    error::resource::{ValidationErrorKind, ValidationFieldError},
-};
+use crate::base::ResourceID;
+use crate::error::resource::{ValidationErrorKind, ValidationFieldError};
 
 #[derive(Debug, Display, Clone, PartialEq, Eq)]
 pub enum PasswordHashAlgorithm {
@@ -482,6 +483,174 @@ impl From<argon2::Error> for PasswordHashError {
             argon2::Error::ThreadsTooMany => Self::Config,
             argon2::Error::TimeTooSmall => Self::Config,
             argon2::Error::VersionInvalid => Self::UnsupportedAlgorithm,
+        }
+    }
+}
+
+/// Token issuer
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenIssuer;
+
+impl TokenIssuer {
+    pub fn as_str() -> &'static str {
+        "conduit.blog.app"
+    }
+}
+
+impl ResourceID for TokenIssuer {
+    fn resource_id() -> &'static str {
+        "base::token_issuer"
+    }
+}
+
+impl std::fmt::Display for TokenIssuer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(Self::as_str())
+    }
+}
+
+impl FromStr for TokenIssuer {
+    type Err = ValidationFieldError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s == Self::as_str() {
+            return Ok(Self);
+        }
+
+        Err(Self::Err::from_resource::<Self>(
+            s.into(),
+            String::new(),
+            vec![ValidationErrorKind::Invalid],
+        ))
+    }
+}
+
+/// Token subject (sub)
+///
+/// Whom token refers to.
+#[derive(Debug, Serialize, Deserialize)]
+pub enum TokenSubject {
+    User(Uuid),
+    Public,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenPayload<T> {
+    /// Expiration time (as UTC timestamp in seconds)
+    exp: u64,
+    /// Issued at (as UTC timestamp in seconds)
+    iat: u64,
+    /// Issuer
+    iss: TokenIssuer,
+    /// Subject (whom token refers to)
+    sub: TokenSubject,
+    /// Associated data
+    pub data: T,
+}
+
+impl<T> TokenPayload<T> {
+    pub fn new(expiration: Duration, subject: TokenSubject, data: T) -> Self {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_secs();
+
+        Self {
+            exp: now + expiration.as_secs(),
+            iat: now,
+            iss: TokenIssuer,
+            sub: subject,
+            data,
+        }
+    }
+
+    pub fn subject(&self) -> &TokenSubject {
+        &self.sub
+    }
+
+    pub fn issuer(&self) -> &TokenIssuer {
+        &self.iss
+    }
+
+    /// Time when the token was issued
+    ///
+    /// UTC timestamp in seconds
+    pub fn issued_at(&self) -> u64 {
+        self.iat
+    }
+
+    /// Time when the token will be expired
+    ///
+    /// UTC timestamp in seconds
+    pub fn expiration(&self) -> u64 {
+        self.exp
+    }
+
+    pub fn expired(&self) -> bool {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_secs();
+        self.exp < now
+    }
+
+    pub fn data(&self) -> &T {
+        &self.data
+    }
+}
+
+/// Opaque token with associated data.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Token<T> {
+    pub token: String,
+    pub payload: TokenPayload<T>,
+}
+
+pub enum TokenEncryptionError {
+    /// A invalid token
+    ///
+    /// When a token may not have a valid JWT shape, encoding or payload.
+    InvalidToken,
+
+    /// Invalid algorithm.
+    InvalidAlgorithm,
+
+    /// A expired token with valid signature and payload.
+    TokenExpired,
+
+    /// A token with a valid signature and a invalid payload
+    InvalidPayload,
+}
+
+impl From<jsonwebtoken::errors::Error> for TokenEncryptionError {
+    fn from(err: jsonwebtoken::errors::Error) -> Self {
+        Self::from(err.into_kind())
+    }
+}
+
+impl From<jsonwebtoken::errors::ErrorKind> for TokenEncryptionError {
+    fn from(err: jsonwebtoken::errors::ErrorKind) -> Self {
+        match err {
+            jsonwebtoken::errors::ErrorKind::InvalidToken => Self::InvalidToken,
+            jsonwebtoken::errors::ErrorKind::InvalidSignature => Self::InvalidPayload,
+            jsonwebtoken::errors::ErrorKind::InvalidEcdsaKey => Self::InvalidAlgorithm,
+            jsonwebtoken::errors::ErrorKind::InvalidRsaKey(_) => Self::InvalidAlgorithm,
+            jsonwebtoken::errors::ErrorKind::RsaFailedSigning => Self::InvalidAlgorithm,
+            jsonwebtoken::errors::ErrorKind::InvalidAlgorithmName => Self::InvalidAlgorithm,
+            jsonwebtoken::errors::ErrorKind::InvalidKeyFormat => Self::InvalidAlgorithm,
+            jsonwebtoken::errors::ErrorKind::MissingRequiredClaim(_) => Self::InvalidPayload,
+            jsonwebtoken::errors::ErrorKind::ExpiredSignature => Self::TokenExpired,
+            jsonwebtoken::errors::ErrorKind::InvalidIssuer => Self::InvalidPayload,
+            jsonwebtoken::errors::ErrorKind::InvalidAudience => Self::InvalidPayload,
+            jsonwebtoken::errors::ErrorKind::InvalidSubject => Self::InvalidPayload,
+            jsonwebtoken::errors::ErrorKind::ImmatureSignature => Self::InvalidPayload,
+            jsonwebtoken::errors::ErrorKind::InvalidAlgorithm => Self::InvalidAlgorithm,
+            jsonwebtoken::errors::ErrorKind::MissingAlgorithm => Self::InvalidAlgorithm,
+            jsonwebtoken::errors::ErrorKind::Base64(_) => Self::InvalidToken,
+            jsonwebtoken::errors::ErrorKind::Json(_) => Self::InvalidToken,
+            jsonwebtoken::errors::ErrorKind::Utf8(_) => Self::InvalidToken,
+            jsonwebtoken::errors::ErrorKind::Crypto(_) => Self::InvalidToken,
+            _ => Self::InvalidToken,
         }
     }
 }

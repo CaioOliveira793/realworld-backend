@@ -399,7 +399,7 @@ pub mod security {
     use derive_more::Display;
     use serde::Serialize;
 
-    use crate::domain::datatype::password::PasswordHashError;
+    use crate::domain::datatype::security::PasswordHashError;
 
     /// Unauthorized access to a resource.
     ///

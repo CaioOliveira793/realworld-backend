@@ -1465,6 +1465,7 @@ dependencies = [
  "derive_more",
  "dotenv",
  "futures",
+ "jsonwebtoken",
  "lazy_static",
  "password-hash",
  "pretty_assertions",

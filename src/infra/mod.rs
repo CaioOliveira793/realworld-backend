@@ -1,15 +1,14 @@
 pub mod database;
+pub mod service;
 
 pub mod handler {
     use async_trait::async_trait;
     use salvo::{http::StatusCode, writer::Json, Depot, FlowCtrl, Handler, Request, Response};
     use sqlx::PgPool;
 
-    use crate::{
-        app::{resource::iam::CreateUserDto, use_case},
-        domain::service::Argon2HashService,
-        error::http::BadRequest,
-    };
+    use crate::app::{resource::iam::CreateUserDto, use_case};
+    use crate::error::http::BadRequest;
+    use crate::infra::service::security::Argon2HashService;
 
     macro_rules! map_res_err {
         ($result:ident, $response:ident) => {
@@ -61,8 +60,7 @@ pub mod router {
     use salvo::{logging::Logger, Router};
     use sqlx::PgPool;
 
-    use super::handler::*;
-    use crate::domain::service::Argon2HashService;
+    use super::{handler::*, service::security::Argon2HashService};
 
     pub fn app(pool: PgPool, hash_service: Argon2HashService) -> Router {
         Router::new().hoop(Logger).push(

@@ -1,4 +1,4 @@
-pub mod password;
+pub mod security;
 
 use crate::error::resource::ValidationFieldError;
 

@@ -2,12 +2,11 @@
 
 use std::net::SocketAddrV4;
 
-use domain::service::Argon2HashService;
 use salvo::{listener::TcpListener, logging::Logger, Server};
 use tokio::signal::ctrl_c;
 
 use config::env_var;
-use infra::{database, router};
+use infra::{database, router, service::security::Argon2HashService};
 
 mod app;
 mod base;

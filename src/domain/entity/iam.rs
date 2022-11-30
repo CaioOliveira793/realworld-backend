@@ -1,6 +1,6 @@
 use url::Url;
 
-use crate::domain::datatype::password::PasswordHash;
+use crate::domain::datatype::security::PasswordHash;
 
 use super::{impl_entity, state_ref, transform_helper, EntityData};
 

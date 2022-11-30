@@ -1,5 +1,4 @@
 use chrono::{DateTime, Utc};
-use pretty_assertions::assert_eq;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serial_test::serial;
@@ -28,35 +27,71 @@ pub struct UserResponse {
     pub image_url: Option<String>,
 }
 
-#[tokio::test]
-#[serial]
-async fn insert_user() {
-    let (client, url, _) = setup_test().await;
+mod create_user {
+    use pretty_assertions::assert_eq;
 
-    let dto = CreateUserDto {
-        email: "some@email.com",
-        username: "user12345",
-        password: "secure:12345678",
-    };
+    use super::*;
 
-    let req = client
-        .post(url.join("/api/user").unwrap())
-        .json(&dto)
-        .build()
-        .unwrap();
+    #[tokio::test]
+    #[serial]
+    async fn create_user() {
+        let (client, url, _) = setup_test().await;
 
-    let res = client.execute(req).await.unwrap();
+        let dto = CreateUserDto {
+            email: "some@email.com",
+            username: "user12345",
+            password: "secure:12345678",
+        };
 
-    assert_eq!(
-        res.status(),
-        StatusCode::CREATED,
-        "invalid created user status code"
-    );
+        let req = client
+            .post(url.join("/api/user").unwrap())
+            .json(&dto)
+            .build()
+            .unwrap();
 
-    let user: UserResponse = res.json().await.unwrap();
+        let res = client.execute(req).await.unwrap();
 
-    assert_eq!(user.email, dto.email);
-    assert_eq!(user.username, dto.username);
-    assert_eq!(user.bio, None);
-    assert_eq!(user.image_url, None);
+        assert_eq!(
+            res.status(),
+            StatusCode::CREATED,
+            "invalid created user status code"
+        );
+
+        let user: UserResponse = res.json().await.unwrap();
+
+        assert_eq!(user.email, dto.email);
+        assert_eq!(user.username, dto.username);
+        assert_eq!(user.bio, None);
+        assert_eq!(user.image_url, None);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn validate_duplicated_data() {
+        let (client, url, _) = setup_test().await;
+
+        let dto = CreateUserDto {
+            email: "same@email.com",
+            username: "user12345",
+            password: "secure:12345678",
+        };
+
+        let req = client
+            .post(url.join("/api/user").unwrap())
+            .json(&dto)
+            .build()
+            .unwrap();
+
+        let res = client.execute(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::CREATED);
+
+        let req = client
+            .post(url.join("/api/user").unwrap())
+            .json(&dto)
+            .build()
+            .unwrap();
+
+        let res = client.execute(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+    }
 }
