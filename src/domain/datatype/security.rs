@@ -1,3 +1,4 @@
+use std::fmt;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -73,10 +74,23 @@ impl From<argon2::Algorithm> for PasswordHashAlgorithm {
     }
 }
 
+impl TryFrom<PasswordHashAlgorithm> for argon2::Algorithm {
+    type Error = PasswordHashError;
+
+    fn try_from(value: PasswordHashAlgorithm) -> Result<Self, Self::Error> {
+        match value {
+            PasswordHashAlgorithm::Argon2d => Ok(Self::Argon2d),
+            PasswordHashAlgorithm::Argon2i => Ok(Self::Argon2i),
+            PasswordHashAlgorithm::Argon2id => Ok(Self::Argon2id),
+            PasswordHashAlgorithm::Bcrypt => Err(Self::Error::UnsupportedAlgorithm),
+        }
+    }
+}
+
 impl<'a> From<&'a PasswordHashAlgorithm> for password_hash::Ident<'a> {
     fn from(algo: &'a PasswordHashAlgorithm) -> Self {
         Self::new(algo.as_str())
-            .expect("Expect PasswordHashAlgorithm to have a valid symbolic name")
+            .expect("Expect `PasswordHashAlgorithm` to have a valid symbolic name")
     }
 }
 
@@ -278,6 +292,10 @@ impl PasswordHash {
         self.version
     }
 
+    pub fn params(&self) -> &PasswordParams {
+        &self.params
+    }
+
     pub fn salt(&self) -> &Option<SaltString> {
         &self.salt
     }
@@ -318,8 +336,8 @@ impl FromStr for PasswordHash {
     }
 }
 
-impl std::fmt::Display for PasswordHash {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for PasswordHash {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "${}", self.algorithm)?;
 
         if let Some(version) = self.version {
@@ -421,6 +439,7 @@ mod password_hash_test {
     }
 }
 
+#[derive(Debug, Display, PartialEq, Eq)]
 pub enum PasswordHashError {
     /// Unsupported Algorithm.
     UnsupportedAlgorithm,
@@ -488,7 +507,7 @@ impl From<argon2::Error> for PasswordHashError {
 }
 
 /// Token issuer
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct TokenIssuer;
 
 impl TokenIssuer {
@@ -503,8 +522,8 @@ impl ResourceID for TokenIssuer {
     }
 }
 
-impl std::fmt::Display for TokenIssuer {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for TokenIssuer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(Self::as_str())
     }
 }
@@ -525,16 +544,102 @@ impl FromStr for TokenIssuer {
     }
 }
 
+impl Serialize for TokenIssuer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(Self::as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for TokenIssuer {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::{Error, Unexpected};
+
+        let s: &str = Deserialize::deserialize(deserializer)?;
+        TokenIssuer::from_str(s)
+            .map_err(|_| Error::invalid_value(Unexpected::Str(s), &Self::resource_id()))
+    }
+}
+
 /// Token subject (sub)
 ///
 /// Whom token refers to.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum TokenSubject {
     User(Uuid),
     Public,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+impl ResourceID for TokenSubject {
+    fn resource_id() -> &'static str {
+        "base::token_subject"
+    }
+}
+
+impl FromStr for TokenSubject {
+    type Err = ValidationFieldError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s == "public" {
+            return Ok(Self::Public);
+        }
+
+        if let Some(id_str) = s.strip_prefix("user:") {
+            let id = Uuid::from_str(id_str).map_err(|_| {
+                Self::Err::from_resource::<Self>(
+                    s.into(),
+                    String::new(),
+                    vec![ValidationErrorKind::Pattern("^user:<uuid>$".into())],
+                )
+            })?;
+            return Ok(Self::User(id));
+        }
+
+        Err(Self::Err::from_resource::<Self>(
+            s.into(),
+            String::new(),
+            vec![ValidationErrorKind::UnknownVariant],
+        ))
+    }
+}
+
+impl fmt::Display for TokenSubject {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TokenSubject::User(id) => write!(f, "user:{id}"),
+            TokenSubject::Public => f.write_str("public"),
+        }
+    }
+}
+
+impl Serialize for TokenSubject {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.to_string().as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for TokenSubject {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::{Error, Unexpected};
+
+        let s: &str = Deserialize::deserialize(deserializer)?;
+        Self::from_str(s)
+            .map_err(|_| Error::invalid_value(Unexpected::Str(s), &Self::resource_id()))
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TokenPayload<T> {
     /// Expiration time (as UTC timestamp in seconds)
     exp: u64,
@@ -589,7 +694,7 @@ impl<T> TokenPayload<T> {
     pub fn expired(&self) -> bool {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .expect("Time went backwards")
+            .expect("Expect system time to be greater than UNIX_EPOCH")
             .as_secs();
         self.exp < now
     }
@@ -599,13 +704,26 @@ impl<T> TokenPayload<T> {
     }
 }
 
-/// Opaque token with associated data.
-#[derive(Debug, Serialize, Deserialize)]
+/// Opaque token with payload data.
+#[derive(Debug)]
 pub struct Token<T> {
     pub token: String,
     pub payload: TokenPayload<T>,
 }
 
+impl<T> fmt::Display for Token<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.token)
+    }
+}
+
+impl<T> From<Token<T>> for String {
+    fn from(tk: Token<T>) -> Self {
+        tk.token
+    }
+}
+
+#[derive(Debug)]
 pub enum TokenEncryptionError {
     /// A invalid token
     ///

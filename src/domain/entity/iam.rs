@@ -13,6 +13,7 @@ pub struct UserState {
     pub(in crate::domain) image_url: Option<Url>,
 }
 
+#[derive(Debug)]
 pub struct User {
     pub(in crate::domain) data: EntityData,
     pub(in crate::domain) state: UserState,

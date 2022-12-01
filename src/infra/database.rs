@@ -40,6 +40,7 @@ pub mod repository {
 
     use futures::TryStreamExt;
     use sqlx::{FromRow, PgPool, QueryBuilder, Row};
+    use tracing::instrument;
 
     use super::sql;
     use crate::{
@@ -47,9 +48,10 @@ pub mod repository {
         error::persistence::PersistenceError,
     };
 
+    #[instrument(target = "database::iam::user", skip(pool))]
     pub async fn insert_user<'u, I>(pool: &PgPool, users: I) -> Result<(), PersistenceError>
     where
-        I: IntoIterator<Item = &'u User>,
+        I: IntoIterator<Item = &'u User> + std::fmt::Debug,
     {
         let mut qb = QueryBuilder::new(
             "INSERT INTO iam.user (id, created, updated, version, username, email, password_hash, bio, image_url) "
@@ -72,13 +74,14 @@ pub mod repository {
         Ok(())
     }
 
+    #[instrument(target = "database::iam::user", skip(pool))]
     pub async fn find_user_by_email(
         pool: &PgPool,
         email: String,
     ) -> Result<Option<User>, PersistenceError> {
         let row = sqlx::query(concat!(
-            "SELECT user.id, user.username, user.email, user.password_hash, ",
-            "user.bio, user.image_url FROM iam.user WHERE user.email = $1",
+            "SELECT id, created, updated, version, username, email, password_hash, ",
+            "bio, image_url FROM iam.user WHERE email = $1",
         ))
         .bind(email)
         .fetch_optional(pool)
@@ -92,13 +95,14 @@ pub mod repository {
     }
 
     macro_rules! make_fn_value_exists {
-        ($fn_name:ident, $type:ty, $table:literal, $column:literal) => {
+        ($fn_name:ident, $table:literal, $column:literal, $type:ty) => {
+            #[instrument(skip(pool))]
             pub async fn $fn_name<'e, I>(
                 pool: &PgPool,
                 values: I,
             ) -> Result<HashSet<$type>, PersistenceError>
             where
-                I: IntoIterator<Item = &'e $type>,
+                I: IntoIterator<Item = &'e $type> + std::fmt::Debug,
             {
                 let mut qb = QueryBuilder::new(concat!(
                     "SELECT ", $column, " FROM ", $table, " WHERE ", $column, " IN "
@@ -117,6 +121,6 @@ pub mod repository {
         };
     }
 
-    make_fn_value_exists!(email_exists, String, "iam.user", "email");
-    make_fn_value_exists!(username_exists, String, "iam.user", "username");
+    make_fn_value_exists!(email_exists, "iam.user", "email", String);
+    make_fn_value_exists!(username_exists, "iam.user", "username", String);
 }

@@ -3,8 +3,8 @@ CREATE SCHEMA iam;
 
 CREATE TABLE iam.user (
   id UUID CONSTRAINT user_pk PRIMARY KEY,
-  created TIMESTAMP NOT NULL,
-  updated TIMESTAMP,
+  created TIMESTAMP WITH TIME ZONE NOT NULL,
+  updated TIMESTAMP WITH TIME ZONE,
   version BIGINT NOT NULL,
   username TEXT NOT NULL,
   email TEXT NOT NULL,

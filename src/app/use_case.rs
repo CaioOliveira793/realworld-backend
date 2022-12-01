@@ -1,12 +1,21 @@
 pub mod iam {
+    use std::time::Duration;
+
     use sqlx::PgPool;
 
     use crate::{
-        app::resource::iam::{CreateUserDto, UserResponse},
-        domain::{entity::iam::User, service::PasswordHashService},
+        app::resource::iam::{
+            AuthenticateUserResponse, CreateUserDto, UserCredential, UserResponse,
+        },
+        domain::{
+            datatype::security::{Token, TokenPayload, TokenSubject},
+            entity::{iam::User, Entity},
+            service::{PasswordHashService, TokenEncryptionService},
+        },
         error::{
             app::ApplicationError,
             resource::{ValidationError, ValidationErrorKind, ValidationFieldError},
+            security::AuthenticationError,
         },
         infra::database::repository,
     };
@@ -71,5 +80,52 @@ pub mod iam {
         repository::insert_user(pool, [&user]).await?;
 
         Ok(user.into())
+    }
+
+    const AUTHENTICATION_TOKEN_EXPIRATION: Duration = Duration::from_secs(60 * 60 * 8);
+
+    pub async fn authenticate_user<'dto, HS, TS>(
+        pool: &PgPool,
+        hash_service: &HS,
+        token_service: &TS,
+        credential: UserCredential<'dto>,
+    ) -> Result<AuthenticateUserResponse, ApplicationError<UserCredential<'dto>>>
+    where
+        HS: PasswordHashService,
+        TS: TokenEncryptionService,
+    {
+        let user = repository::find_user_by_email(pool, credential.email.into())
+            .await?
+            .ok_or_else(|| {
+                ValidationError::from_resource(
+                    credential.clone(),
+                    vec![ValidationFieldError::new(
+                        "base::email",
+                        credential.email.into(),
+                        "/email".into(),
+                        vec![ValidationErrorKind::NotFound],
+                    )],
+                )
+            })?;
+
+        if hash_service
+            .verify_password(credential.password, user.password_hash())
+            .is_err()
+        {
+            return Err(AuthenticationError::InvalidCredential.into());
+        }
+
+        let payload = TokenPayload::new(
+            AUTHENTICATION_TOKEN_EXPIRATION,
+            TokenSubject::User(user.ident()),
+            (),
+        );
+        let token =
+            Token::new(payload, token_service).expect("Expect to sign a user authentication token");
+
+        Ok(AuthenticateUserResponse {
+            user: user.into(),
+            token: token.into(),
+        })
     }
 }

@@ -68,13 +68,12 @@ pub mod app {
         http::ErrorResponse,
         persistence::PersistenceError,
         resource::{ConflictError, ValidationError},
-        security::{AuthenticationError, ForbiddenError, UnauthorizedError},
+        security::{AuthenticationError, ForbiddenError},
     };
 
     #[derive(Debug, Display, Serialize)]
     pub enum ApplicationError<R> {
         Authentication(AuthenticationError),
-        Unauthorized(UnauthorizedError),
         Forbidden(ForbiddenError),
         Validation(ValidationError<R>),
         Conflict(ConflictError<R>),
@@ -88,12 +87,6 @@ pub mod app {
     impl<R> From<AuthenticationError> for ApplicationError<R> {
         fn from(err: AuthenticationError) -> Self {
             Self::Authentication(err)
-        }
-    }
-
-    impl<R> From<UnauthorizedError> for ApplicationError<R> {
-        fn from(err: UnauthorizedError) -> Self {
-            Self::Unauthorized(err)
         }
     }
 
@@ -126,9 +119,7 @@ pub mod app {
             let status = match &self {
                 ApplicationError::Persistence(_) => StatusError::service_unavailable(),
                 ApplicationError::Validation(_) => StatusError::bad_request(),
-                ApplicationError::Authentication(_) | ApplicationError::Unauthorized(_) => {
-                    StatusError::unauthorized()
-                }
+                ApplicationError::Authentication(_) => StatusError::unauthorized(),
                 ApplicationError::Forbidden(_) => StatusError::forbidden(),
                 ApplicationError::Conflict(_) => StatusError::conflict(),
             };
@@ -199,6 +190,7 @@ pub mod persistence {
 
     impl From<SqlxError> for PersistenceError {
         fn from(err: SqlxError) -> Self {
+            tracing::error!(target = "database", cause = %err);
             match err {
                 SqlxError::Configuration(_) => {
                     Self::Connection(DispatchError::IO(io::ErrorKind::InvalidInput.into()))
@@ -223,8 +215,7 @@ pub mod persistence {
                     Self::Connection(DispatchError::IO(io::ErrorKind::NotConnected.into()))
                 }
                 SqlxError::WorkerCrashed => {
-                    tracing::error!("FATAL: sqlx background worker error, {err}");
-                    panic!("sqlx background worker error: {err}");
+                    panic!("PANIC! sqlx background worker error: {err}");
                 }
                 SqlxError::Migrate(_) => Self::DataMigration,
                 _ => PersistenceError::Unknown(err.into()),
@@ -401,11 +392,15 @@ pub mod security {
 
     use crate::domain::datatype::security::PasswordHashError;
 
-    /// Unauthorized access to a resource.
+    /// Authentication error.
     ///
-    /// The user is unauthorized to access the resource.
+    /// The user is not authenticated to access the resource.
     #[derive(Debug, Display, Serialize)]
-    pub enum UnauthorizedError {
+    pub enum AuthenticationError {
+        /// Attempt to authenticate with invalid credentials.
+        #[display(fmt = "invalid_credential")]
+        InvalidCredential,
+
         /// Authentication token is not present.
         #[display(fmt = "token_not_present")]
         TokenNotPresent,
@@ -419,13 +414,6 @@ pub mod security {
         /// Authentication token is invalid.
         #[display(fmt = "invalid_token")]
         InvalidToken,
-    }
-
-    #[derive(Debug, Display, Serialize)]
-    pub enum AuthenticationError {
-        /// Attempt to authenticate with invalid credentials.
-        #[display(fmt = "invalid_credential")]
-        InvalidCredential,
     }
 
     #[derive(Debug, Display, Serialize)]
