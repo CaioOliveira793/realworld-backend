@@ -2,10 +2,11 @@ pub mod iam {
     use std::time::Duration;
 
     use sqlx::PgPool;
+    use uuid::Uuid;
 
     use crate::{
         app::resource::iam::{
-            AuthenticateUserResponse, CreateUserDto, UserCredential, UserResponse,
+            AuthenticateUserResponse, CreateUser, UpdateUser, UserCredential, UserResponse,
         },
         domain::{
             datatype::security::{Token, TokenPayload, TokenSubject},
@@ -14,7 +15,7 @@ pub mod iam {
         },
         error::{
             app::ApplicationError,
-            resource::{ValidationError, ValidationErrorKind, ValidationFieldError},
+            resource::{NotFoundError, ValidationError, ValidationErrorKind, ValidationFieldError},
             security::AuthenticationError,
         },
         infra::database::repository,
@@ -25,8 +26,8 @@ pub mod iam {
 
         pub async fn create_user<'dto>(
             pool: &PgPool,
-            dto: &CreateUserDto<'dto>,
-        ) -> Result<(), ApplicationError<CreateUserDto<'dto>>> {
+            dto: &CreateUser<'dto>,
+        ) -> Result<(), ApplicationError<CreateUser<'dto>>> {
             let mut errors = Vec::new();
 
             let emails = repository::email_exists(pool, [&dto.email.into()]).await?;
@@ -60,8 +61,9 @@ pub mod iam {
     pub async fn create_user<'dto, HS: PasswordHashService>(
         pool: &PgPool,
         hash_service: &HS,
-        dto: CreateUserDto<'dto>,
-    ) -> Result<UserResponse, ApplicationError<CreateUserDto<'dto>>> {
+        id: Uuid,
+        dto: CreateUser<'dto>,
+    ) -> Result<UserResponse, ApplicationError<CreateUser<'dto>>> {
         validation::create_user(pool, &dto).await?;
 
         let password_hash = hash_service.hash_password(dto.password).map_err(|_| {
@@ -75,9 +77,11 @@ pub mod iam {
                 )],
             )
         })?;
-        let user = User::new(dto.email.into(), dto.username.into(), password_hash);
+        let user = User::new(id, dto.email.into(), dto.username.into(), password_hash);
 
-        repository::insert_user(pool, [&user]).await?;
+        // TODO: validate if user id already exists
+
+        repository::insert_users(pool, [&user]).await?;
 
         Ok(user.into())
     }
@@ -127,5 +131,34 @@ pub mod iam {
             user: user.into(),
             token: token.into(),
         })
+    }
+
+    pub async fn update_user<TS>(
+        pool: &PgPool,
+        token_service: &TS,
+        token: &str,
+        id: Uuid,
+        dto: UpdateUser,
+    ) -> Result<UserResponse, ApplicationError<UpdateUser>>
+    where
+        TS: TokenEncryptionService,
+    {
+        let mut user = repository::find_user_by_id(pool, id)
+            .await?
+            .ok_or_else(|| NotFoundError::from_resource::<UserResponse>(id))?;
+
+        let payload: TokenPayload<()> = token_service
+            .verify_token(token)
+            .map_err(AuthenticationError::from)?;
+
+        if *payload.subject() != TokenSubject::User(id) {
+            return Err(AuthenticationError::InvalidToken.into());
+        }
+
+        user.update(dto.bio, dto.image_url);
+
+        repository::update_user(pool, &user).await?;
+
+        Ok(user.into())
     }
 }

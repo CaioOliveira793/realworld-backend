@@ -1,6 +1,6 @@
 #![warn(clippy::unwrap_used)]
 
-use std::{net::SocketAddrV4, sync::Arc};
+use std::{net::SocketAddr, sync::Arc};
 
 use salvo::{listener::TcpListener, Server};
 use tokio::signal::ctrl_c;
@@ -36,13 +36,13 @@ async fn main() {
 
     let pool = database::connection::create_sqlx_pool().await;
 
-    let address = SocketAddrV4::new([0, 0, 0, 0].into(), env_var::get().port);
+    let addr: SocketAddr = ([0, 0, 0, 0], env_var::get().port).into();
     let router = router::app(
         &pool,
         Arc::new(Argon2HashService::new()),
         Arc::new(JWTEncryptionService::from_config()),
     );
-    let listener = TcpListener::bind(&address);
+    let listener = TcpListener::bind(&addr);
     Server::new(listener)
         .serve_with_graceful_shutdown(router, handle_shutdown())
         .await;

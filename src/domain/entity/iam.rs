@@ -1,4 +1,5 @@
 use url::Url;
+use uuid::Uuid;
 
 use crate::domain::datatype::security::PasswordHash;
 
@@ -30,9 +31,9 @@ impl User {
 
     transform_helper!(UserState);
 
-    pub fn new(email: String, username: String, password_hash: PasswordHash) -> Self {
+    pub fn new(id: Uuid, email: String, username: String, password_hash: PasswordHash) -> Self {
         Self::restore(
-            EntityData::new(),
+            EntityData::new(id),
             UserState {
                 email,
                 username,
@@ -41,5 +42,12 @@ impl User {
                 image_url: None,
             },
         )
+    }
+
+    pub fn update(&mut self, bio: Option<String>, image_url: Option<Url>) {
+        self.state.bio = bio;
+        self.state.image_url = image_url;
+
+        self.data.update();
     }
 }

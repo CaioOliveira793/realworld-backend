@@ -20,13 +20,21 @@ pub struct EntityData {
 }
 
 impl EntityData {
-    pub fn new() -> Self {
+    pub fn new(id: Uuid) -> Self {
         Self {
-            id: Uuid::new_v4(),
+            id,
             created: Utc::now(),
             updated: None,
             version: 1,
         }
+    }
+
+    /// Update the entity data.
+    ///
+    /// Icrement the entity version by 1 and set the updated time as now.
+    pub fn update(&mut self) {
+        self.updated = Some(Utc::now());
+        self.version += 1;
     }
 }
 

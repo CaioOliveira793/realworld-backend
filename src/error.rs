@@ -66,8 +66,8 @@ pub mod app {
 
     use super::{
         http::ErrorResponse,
-        persistence::PersistenceError,
-        resource::{ConflictError, ValidationError},
+        persistence::{MutationError, PersistenceError},
+        resource::{ConflictError, NotFoundError, ValidationError},
         security::{AuthenticationError, ForbiddenError},
     };
 
@@ -76,13 +76,14 @@ pub mod app {
         Authentication(AuthenticationError),
         Forbidden(ForbiddenError),
         Validation(ValidationError<R>),
-        Conflict(ConflictError<R>),
+        Conflict(ConflictError),
+        NotFound(NotFoundError),
         // Domain errors
         // Operation(OperationError) -> 422 Unprocessable Entity
         Persistence(PersistenceError),
     }
 
-    impl<R: std::error::Error> std::error::Error for ApplicationError<R> {}
+    impl<R: std::fmt::Debug> std::error::Error for ApplicationError<R> {}
 
     impl<R> From<AuthenticationError> for ApplicationError<R> {
         fn from(err: AuthenticationError) -> Self {
@@ -102,15 +103,30 @@ pub mod app {
         }
     }
 
-    impl<R> From<ConflictError<R>> for ApplicationError<R> {
-        fn from(err: ConflictError<R>) -> Self {
+    impl<R> From<ConflictError> for ApplicationError<R> {
+        fn from(err: ConflictError) -> Self {
             Self::Conflict(err)
+        }
+    }
+
+    impl<R> From<NotFoundError> for ApplicationError<R> {
+        fn from(err: NotFoundError) -> Self {
+            Self::NotFound(err)
         }
     }
 
     impl<R> From<PersistenceError> for ApplicationError<R> {
         fn from(err: PersistenceError) -> Self {
             Self::Persistence(err)
+        }
+    }
+
+    impl<R> From<MutationError> for ApplicationError<R> {
+        fn from(err: MutationError) -> Self {
+            match err {
+                MutationError::Persistence(err) => err.into(),
+                MutationError::Conflict(err) => err.into(),
+            }
         }
     }
 
@@ -122,6 +138,7 @@ pub mod app {
                 ApplicationError::Authentication(_) => StatusError::unauthorized(),
                 ApplicationError::Forbidden(_) => StatusError::forbidden(),
                 ApplicationError::Conflict(_) => StatusError::conflict(),
+                ApplicationError::NotFound(_) => StatusError::not_found(),
             };
             res.render(Json(ErrorResponse::from_status_error(&status, self)));
             res.set_status_error(status);
@@ -129,11 +146,13 @@ pub mod app {
     }
 }
 
+// TODO: remove, use std::io::Error instead
 pub mod service {
     use derive_more::Display;
 
     use crate::error::UnknownError;
 
+    // TODO: replace DispatchError by std::io::Error
     #[derive(Debug, Display)]
     pub enum DispatchError {
         #[display(fmt = "Dispatched operation timed out in {_0:?}")]
@@ -150,12 +169,12 @@ pub mod service {
 }
 
 pub mod persistence {
-    use std::io;
+    use std::{error, io};
 
     use derive_more::Display;
     use serde::Serialize;
 
-    use super::{service::DispatchError, UnknownError};
+    use super::{resource::ConflictError, service::DispatchError, UnknownError};
 
     pub type SqlState = String;
 
@@ -175,7 +194,7 @@ pub mod persistence {
         Unknown(UnknownError),
     }
 
-    impl std::error::Error for PersistenceError {}
+    impl error::Error for PersistenceError {}
 
     impl Serialize for PersistenceError {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -222,6 +241,26 @@ pub mod persistence {
             }
         }
     }
+
+    #[derive(Debug, Display)]
+    pub enum MutationError {
+        Persistence(PersistenceError),
+        Conflict(ConflictError),
+    }
+
+    impl From<PersistenceError> for MutationError {
+        fn from(err: PersistenceError) -> Self {
+            Self::Persistence(err)
+        }
+    }
+
+    impl From<ConflictError> for MutationError {
+        fn from(err: ConflictError) -> Self {
+            Self::Conflict(err)
+        }
+    }
+
+    impl error::Error for MutationError {}
 }
 
 pub mod resource {
@@ -288,12 +327,6 @@ pub mod resource {
     }
 
     impl std::error::Error for ValidationErrorKind {}
-
-    // impl From<email_address::Error> for ValidationErrorKind {
-    //     fn from(_: email_address::Error) -> Self {
-    //         Self::Pattern("email".into())
-    //     }
-    // }
 
     #[derive(Debug, Error, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
     pub struct ValidationError<R> {
@@ -373,16 +406,39 @@ pub mod resource {
     }
 
     #[derive(Debug, Display, Clone, Error, PartialEq, Eq, Hash, Serialize, Deserialize)]
-    #[display(fmt = "Conflicting resource {resource_type} of id {resource_id}")]
-    pub struct ConflictError<R> {
+    #[display(fmt = "Conflicting resource {resource_type} of id {resource_id:?}")]
+    pub struct ConflictError {
+        /// Resource id
+        pub resource_id: Option<Uuid>,
+        /// Name of the resource
+        pub resource_type: &'static str,
+    }
+
+    impl ConflictError {
+        pub fn from_resource<T: ResourceID>(id: Option<Uuid>) -> Self {
+            Self {
+                resource_id: id,
+                resource_type: T::resource_id(),
+            }
+        }
+    }
+
+    #[derive(Debug, Display, Clone, Error, PartialEq, Eq, Serialize, Deserialize)]
+    #[display(fmt = "Resource {resource_type} not found")]
+    pub struct NotFoundError {
         /// Resource id
         pub resource_id: Uuid,
         /// Name of the resource
         pub resource_type: &'static str,
-        /// Stabe resource already found
-        pub stable: R,
-        /// New conflicting resource
-        pub conflict: Option<R>,
+    }
+
+    impl NotFoundError {
+        pub fn from_resource<T: ResourceID>(id: Uuid) -> Self {
+            Self {
+                resource_id: id,
+                resource_type: T::resource_id(),
+            }
+        }
     }
 }
 
@@ -390,7 +446,7 @@ pub mod security {
     use derive_more::Display;
     use serde::Serialize;
 
-    use crate::domain::datatype::security::PasswordHashError;
+    use crate::domain::datatype::security::{PasswordHashError, TokenEncryptionError};
 
     /// Authentication error.
     ///
@@ -429,6 +485,12 @@ pub mod security {
         /// Authentication credentials is required to grant access, but invalid credentials was send.
         #[display(fmt = "invalid_credential")]
         InvalidCredential,
+    }
+
+    impl From<TokenEncryptionError> for AuthenticationError {
+        fn from(_: TokenEncryptionError) -> Self {
+            Self::InvalidToken
+        }
     }
 
     impl From<PasswordHashError> for AuthenticationError {
